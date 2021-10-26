@@ -11,6 +11,7 @@ contract Verify is Ownable{
    bytes32 public finalHash;
    address public serverAddress;
    address public NFTAddress;
+   address public DAOAddress;
    mapping (address => bool) public serverAddresses;
   
   
@@ -33,9 +34,23 @@ contract Verify is Ownable{
     return serverAddresses[signer];
   }
 
+  function driverDataVerify(address ownerAddress, string memory rating, uint256 tokenId, bytes32 r, bytes32 s, uint8 v) public returns(bool){
+    require(_msgSender() == DAOAddress, "not called by DAO contract");
+    bytes32 hashRecover = getHash(ownerAddress, rating, tokenId);
+    address signer = ecrecover(hashRecover, v, r, s);
+    require( serverAddresses[signer],"SIGNER MUST BE SERVER"); 
+    nonces[_msgSender()]++;
+    return serverAddresses[signer];
+  }
+
   function setNFTAddress (address _NFTAddress) public onlyOwner{
     require(_NFTAddress != address(0), "can't set as zero address");
     NFTAddress = _NFTAddress;
+  }
+
+  function setDAOAddress (address _DAOAddress) public onlyOwner{
+    require(_DAOAddress != address(0), "can't set as zero address");
+    DAOAddress = _DAOAddress;
   }
     
 }
