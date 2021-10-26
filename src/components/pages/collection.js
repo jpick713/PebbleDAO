@@ -61,7 +61,7 @@ return (
                       
                       <div className="profile_name">
                           <h4>
-                          {`${globalAccount.slice(0,5)}...${globalAccount.slice(-4)}`}                                              
+                          {globalActive && `${globalAccount.slice(0,5)}...${globalAccount.slice(-4)}`}                                              
                               <div className="clearfix"></div>
                               
                           </h4>

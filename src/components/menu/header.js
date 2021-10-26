@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext} from "react";
 import Breakpoint, { BreakpointProvider, setDefaultBreakpoints } from "react-socks";
 import { header } from 'react-bootstrap';
 import { Link } from '@reach/router';
 import useOnclickOutside from "react-cool-onclickoutside";
+
+import { useWeb3React } from "@web3-react/core";
+import { InjectedConnector } from '@web3-react/injected-connector'
+import { AccountContext } from '../App';
 
 setDefaultBreakpoints([
   { xs: 0 },
@@ -31,6 +35,36 @@ const Header= function() {
     const [openMenu1, setOpenMenu1] = React.useState(false);
     const [openMenu2, setOpenMenu2] = React.useState(false);
     const [openMenu3, setOpenMenu3] = React.useState(false);
+    const injected = new InjectedConnector({
+      supportedChainIds: [1, 3, 4, 5, 42],
+    })
+  
+    const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
+    
+    const {globalAccount, setGlobalAccount, globalActive, setGlobalActive} = useContext(AccountContext);
+    
+    useEffect(() => {
+      setGlobalAccount(account);
+      setGlobalActive(active);
+    }, [account, active])
+
+    async function connect() {
+      try {
+        await activate(injected)
+      } catch (ex) {
+        console.log(ex)
+      }
+    }
+
+    async function disconnect() {
+      try {
+        deactivate()
+      } catch (ex) {
+        console.log(ex)
+      }
+    }
+
+
     const handleBtnClick = (): void => {
       setOpenMenu(!openMenu);
     };
@@ -187,7 +221,7 @@ const Header= function() {
               </BreakpointProvider>
 
               <div className='mainside'>
-                <NavLink to="/wallet" className="btn-main">Connect Wallet</NavLink>
+                {globalActive ? <button onClick= {disconnect} className="btn-main">Disconnect</button> : <button onClick= {connect} className="btn-main">Connect</button>}
               </div>
                   
       </div>

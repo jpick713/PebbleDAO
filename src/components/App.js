@@ -48,10 +48,11 @@ const App=()=> {
   return (
     <div className="wrapper">
       <GlobalStyles />
+      <AccountContext.Provider path ="/" value={{globalAccount, setGlobalAccount, globalActive, setGlobalActive}}>
         <Header/>
           <PosedRouter>
             <ScrollTop path="/">
-              <AccountContext.Provider path ="/" value={{globalAccount, setGlobalAccount, globalActive, setGlobalActive}}>
+              
               <Landing exact path="/">
                 <Redirect to="/landing" />
               </Landing>
@@ -59,9 +60,10 @@ const App=()=> {
               <Collection path="/profile" />
               <Holdings path="/holdings" />
               <Mint path="/mint" />
-              </AccountContext.Provider>
+              
               </ScrollTop>
           </PosedRouter>
+        </AccountContext.Provider>
       <ScrollToTopBtn />
     
     </div>
