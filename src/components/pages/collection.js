@@ -1,7 +1,10 @@
-import React from "react";
+import React, {useState, useContext, useEffect} from "react";
 import ColumnNewRedux from '../components/ColumnNewRedux';
 import Footer from '../components/Footer';
 import { createGlobalStyle } from 'styled-components';
+import { useWeb3React } from "@web3-react/core";
+import { InjectedConnector } from '@web3-react/injected-connector'
+import { AccountContext } from '../App';
 
 const GlobalStyles = createGlobalStyle`
   header#myHeader.navbar.white {
@@ -9,16 +12,26 @@ const GlobalStyles = createGlobalStyle`
   }
 `;
 
-const Collection= function() {
+const Collection= function(props) {
 const [openMenu, setOpenMenu] = React.useState(true);
 const [openMenu1, setOpenMenu1] = React.useState(false);
-const handleBtnClick = (): void => {
+const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
+
+const {globalAccount, setGlobalAccount, globalActive, setGlobalActive} = useContext(AccountContext);
+
+useEffect(() => {
+  setGlobalAccount(account);
+  setGlobalActive(active);
+}, [account, active])
+
+
+const handleBtnClick = () => {
   setOpenMenu(!openMenu);
   setOpenMenu1(false);
   document.getElementById("Mainbtn").classList.add("active");
   document.getElementById("Mainbtn1").classList.remove("active");
 };
-const handleBtnClick1 = (): void => {
+const handleBtnClick1 = () => {
   setOpenMenu1(!openMenu1);
   setOpenMenu(false);
   document.getElementById("Mainbtn1").classList.add("active");
@@ -48,10 +61,9 @@ return (
                       
                       <div className="profile_name">
                           <h4>
-                              Username Placeholder                                               
+                          {`${globalAccount.slice(0,5)}...${globalAccount.slice(-4)}`}                                              
                               <div className="clearfix"></div>
-                              <span id="wallet" className="profile_wallet">DdzFFzCqrhshMSxb9oW3mRo4MJrQkusV3fGFSTwaiu4wPBqMryA9DYVJCkW9n7twCffG5f5wX2sSkoDXGiZB1HPa7K7f865Kk4LqnrME</span>
-                              <button id="btn_copy" title="Copy Text">Copy</button>
+                              
                           </h4>
                       </div>
                   </div>

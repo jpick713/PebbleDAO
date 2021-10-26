@@ -1,10 +1,14 @@
-import React from 'react';
+import React, {useState, useContext, useEffect} from 'react';
 import Particle from '../components/Particle';
 import SliderMainParticle from '../components/SliderMainParticle';
 
 import { createGlobalStyle } from 'styled-components';
 import Footer from '../components/Footer';
 import FeatureBox from '../components/FeatureBox';
+
+import { useWeb3React } from "@web3-react/core";
+import { InjectedConnector } from '@web3-react/injected-connector'
+import { AccountContext } from '../App';
 
 const GlobalStyles = createGlobalStyle`
   header#myHeader .logo .d-block{
@@ -105,7 +109,38 @@ const GlobalStyles = createGlobalStyle`
   }
 `;
 
-const Landing = () => (
+const Landing = () => {
+
+  const injected = new InjectedConnector({
+    supportedChainIds: [1, 3, 4, 5, 42],
+  })
+
+const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
+
+const {globalAccount, setGlobalAccount, globalActive, setGlobalActive} = useContext(AccountContext);
+
+useEffect(() => {
+  setGlobalAccount(account);
+  setGlobalActive(active);
+}, [account, active])
+
+async function connect() {
+    try {
+      await activate(injected)
+    } catch (ex) {
+      console.log(ex)
+    }
+  }
+
+  async function disconnect() {
+    try {
+      deactivate()
+    } catch (ex) {
+      console.log(ex)
+    }
+  }
+  
+  return(
     <div>
     <GlobalStyles />
         <section className="jumbotron no-bg" style={{backgroundImage: `url(${'./img/background/8.jpg'})`}}>
@@ -115,10 +150,12 @@ const Landing = () => (
   
         <section className='container no-bottom'>
           <div className="row">
-              <div className="col-lg-2 col-sm-4 col-6 mb30">
-                  <span className="box-url">
+              <div className="col-lg-2 col-sm-4 col-6 mb30" >
+                  <span className="box-url" onClick={connect}>
+                      
                       <img src="./img/wallet/1.png" alt="" className="mb20"/>
-                      <h4>Metamask</h4>
+                      
+                      <h4>Metamask {active && <span>{`${account.slice(0,5)}...${account.slice(-4)}`}</span>}</h4>
                   </span>
               </div>
   
@@ -171,5 +208,5 @@ const Landing = () => (
 
     <Footer />
     </div>
-  );
+  )};
   export default Landing;

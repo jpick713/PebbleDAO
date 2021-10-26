@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {createContext, useState, useContext} from 'react';
 import { Router, Location, Redirect } from '@reach/router';
 import ScrollToTopBtn from './menu/scrollToTop';
 import Header from './menu/header';
@@ -39,21 +39,27 @@ const PosedRouter = ({ children }) => (
   </Location>
 );
 
+export const AccountContext = createContext({});
 
 const App=()=> {
+  const [globalAccount, setGlobalAccount] = useState("");
+  const [globalActive, setGlobalActive] = useState(false);
+
   return (
     <div className="wrapper">
       <GlobalStyles />
         <Header/>
           <PosedRouter>
             <ScrollTop path="/">
+              <AccountContext.Provider path ="/" value={{globalAccount, setGlobalAccount, globalActive, setGlobalActive}}>
               <Landing exact path="/">
                 <Redirect to="/landing" />
               </Landing>
-              <Wallet path="/wallet" />
+              
               <Collection path="/profile" />
               <Holdings path="/holdings" />
               <Mint path="/mint" />
+              </AccountContext.Provider>
               </ScrollTop>
           </PosedRouter>
       <ScrollToTopBtn />

@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Verify.sol";
 
-
 contract InsuranceNFT is ERC721URIStorage, Ownable{
     using Counters for Counters.Counter;
     
@@ -76,5 +75,4 @@ contract InsuranceNFT is ERC721URIStorage, Ownable{
         (bool success,) = owner().call{value : address(this).balance}("");
         require(success, "transaction not completed");
     }
-
 }

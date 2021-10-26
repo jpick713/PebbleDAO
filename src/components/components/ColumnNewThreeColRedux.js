@@ -172,7 +172,56 @@ export default class Responsive extends Component {
         price: "0.08 ETH",
         bid: "1/20",
         likes: 50
-    }]
+    },
+    {
+        deadline:"January, 10, 2022",
+        authorLink: "#",
+        nftLink: "#",
+        bidLink: "#",
+        authorImg: "./img/author/author-12.jpg",
+        previewImg: "./img/items/anim-8.webp",
+        title: "I Believe I Can Fly",
+        price: "0.08 ETH",
+        bid: "1/20",
+        likes: 50
+    },
+    {
+        deadline:"January, 10, 2022",
+        authorLink: "#",
+        nftLink: "#",
+        bidLink: "#",
+        authorImg: "./img/author/author-12.jpg",
+        previewImg: "./img/items/anim-8.webp",
+        title: "I Believe I Can Fly",
+        price: "0.08 ETH",
+        bid: "1/20",
+        likes: 50
+    },
+    {
+        deadline:"January, 10, 2022",
+        authorLink: "#",
+        nftLink: "#",
+        bidLink: "#",
+        authorImg: "./img/author/author-12.jpg",
+        previewImg: "./img/items/anim-8.webp",
+        title: "I Believe I Can Fly",
+        price: "0.08 ETH",
+        bid: "1/20",
+        likes: 50
+    },
+    {
+        deadline:"January, 10, 2022",
+        authorLink: "#",
+        nftLink: "#",
+        bidLink: "#",
+        authorImg: "./img/author/author-12.jpg",
+        previewImg: "./img/items/anim-8.webp",
+        title: "I Believe I Can Fly",
+        price: "0.08 ETH",
+        bid: "1/20",
+        likes: 50
+    }
+]
 
   constructor(props) {
     super(props);
@@ -204,7 +253,7 @@ export default class Responsive extends Component {
 
  render() {
   return (
-    <div className='row'>
+    <div key = {this.state.nfts.length} className='row'>
         {this.state.nfts.map( (nft, index) => (
             <div key={index} className="d-item col-lg-4 col-md-6 col-sm-6 col-xs-12 mb-4">
                 <div className="nft__item m-0">
