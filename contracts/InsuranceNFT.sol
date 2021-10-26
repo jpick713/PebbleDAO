@@ -17,8 +17,10 @@ contract InsuranceNFT is ERC721URIStorage, Ownable{
     Verify verifyContract; //address of verifying contract
     
     uint private whiteListNumber;// number of whiteListed addresses
-    string public baseURI; //the base URI
+    //string public baseURI; //the base URI
     mapping (address => uint) public lastBlockNumberUpdate; // track mint/update of NFTs per address;
+    mapping (address => uint[]) internal tokensByAddress;//track all NFTs owned by a user
+
     uint public currentTokenIdMax; // for ease of access public call
 
     event NFTMinted(address indexed _to, string indexed _tokenURI);
@@ -26,8 +28,7 @@ contract InsuranceNFT is ERC721URIStorage, Ownable{
     
     
 
-    constructor(string memory _initialBaseURI, address _verifyAddress, address payable _DAOAddress) ERC721("IoTex Insurance", "IOTXI") public{
-        baseURI = _initialBaseURI;
+    constructor(address _verifyAddress, address payable _DAOAddress) ERC721("IoTex Insurance", "IOTXI") public{
         verifyContract = Verify(_verifyAddress);
         DAOContract = _DAOAddress;
     }
@@ -37,8 +38,6 @@ contract InsuranceNFT is ERC721URIStorage, Ownable{
     }
 
     function mintTokens(string memory _tokenURI, bytes32 r, bytes32 s, uint8 v) public {  
-        require(balanceOf(_msgSender()) == 0, "Update a token you own");
-        //call verify(_msgSender(), _tokenURI, 0)
         require(verifyContract.metaDataVerify(_msgSender(), _tokenURI, 0, r, s, v), "not verified");
         uint256 newItemId;
         _tokenIds.increment();
@@ -47,6 +46,7 @@ contract InsuranceNFT is ERC721URIStorage, Ownable{
         _mint(_msgSender(), newItemId);
         _setTokenURI(newItemId, _tokenURI);
         lastBlockNumberUpdate[_msgSender()] = block.number;
+        tokensByAddress[_msgSender()].push(newItemId);
         currentTokenIdMax = newItemId;
         emit NFTMinted(msg.sender, _tokenURI);
     }
@@ -59,12 +59,12 @@ contract InsuranceNFT is ERC721URIStorage, Ownable{
         lastBlockNumberUpdate[_msgSender()] = block.number;
     }
 
-    function setBaseURI(string memory _newURI) public onlyOwner{
-        baseURI = _newURI;
-    }
-
     function setDAOContract(address payable _DAOAddress) public onlyOwner{
         DAOContract = _DAOAddress;
+    }
+
+    function getTokensByAddr(address tokenAddress) public view returns(uint[] memory){
+        return tokensByAddress[tokenAddress];
     }
 
     function withdrawToWallet() public onlyOwner{

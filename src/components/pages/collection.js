@@ -5,6 +5,7 @@ import { createGlobalStyle } from 'styled-components';
 import { useWeb3React } from "@web3-react/core";
 import { InjectedConnector } from '@web3-react/injected-connector'
 import { AccountContext } from '../App';
+//const Web3 = require('web3');
 
 const GlobalStyles = createGlobalStyle`
   header#myHeader.navbar.white {
@@ -15,6 +16,7 @@ const GlobalStyles = createGlobalStyle`
 const Collection= function(props) {
 const [openMenu, setOpenMenu] = React.useState(true);
 const [openMenu1, setOpenMenu1] = React.useState(false);
+
 const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
 
 const {globalAccount, setGlobalAccount, globalActive, setGlobalActive} = useContext(AccountContext);

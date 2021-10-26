@@ -9,14 +9,24 @@ import "./InsuranceNFT.sol";
 
 contract InsuranceDAO is Ownable{
 
-    enum DriverRating{POOR, FAIR, GOOD, GREAT, PRISTINE}
-    bytes32[5] internal ratingBytes = [keccak256("POOR"), keccak256("FAIR"), keccak256("GOOD"), keccak256("GREAT"), keccak256("PRISTINE")];//hashes of all the ratings 
-    mapping (DriverRating => uint) public costSchedule;//costs for each driver NFT
+    mapping (uint256 => uint256) public costSchedule;//costs for each driver NFT
     Verify verifyContract; //verifying contract
     InsuranceNFT NFTInstance;//NFT contract
 
-    constructor(address _verifyAddress, address payable NFTAddress){
+    constructor(address _verifyAddress){
         verifyContract = Verify(_verifyAddress);
-        NFTInstance = InsuranceNFT(NFTAddress);
     }
+
+    function setCostSchedule(uint[] memory levels, uint[] memory costs) public onlyOwner{
+        require(levels.length == costs.length, "arr lengths");
+        for(uint8 i=0; i<levels.length; i++){
+            if(levels[i]>=1 && levels[i] <= 5){
+                costSchedule[levels[i]] = costs[i];
+            }
+        }
+    }
+
+    function setNFTContract(address payable NFTContract) public onlyOwner{
+        NFTInstance = InsuranceNFT(NFTContract);
+    } 
 }

@@ -35,6 +35,20 @@ module.exports = {
       networkCheckTimeout: 100000,
       timeoutBlocks: 200,
       skipDryRun: true
+    },
+    iotex_test: {
+      provider: () =>
+        new HDWalletProvider({
+          mnemonic: {
+            phrase: mnemonic,
+          },
+          providerOrUrl: "https://babel-api.testnet.iotex.io",
+          shareNonce: true
+        }),
+      network_id: 4690,    // IOTEX mainnet chain id 4689, testnet is 4690
+      gas: 8500000,
+      gasPrice: 1000000000000,
+      skipDryRun: true
     }
     
   },
