@@ -117,12 +117,13 @@ const Landing = () => {
 
 const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
 
-const {globalAccount, setGlobalAccount, globalActive, setGlobalActive} = useContext(AccountContext);
+const {globalAccount, setGlobalAccount, globalActive, setGlobalActive, globalChainId, setGlobalChainId} = useContext(AccountContext);
 
 useEffect(() => {
   setGlobalAccount(account);
   setGlobalActive(active);
-}, [account, active])
+  setGlobalChainId(chainId);
+}, [account, active, chainId])
 
 async function connect() {
     try {

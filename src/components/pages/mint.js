@@ -1,7 +1,12 @@
+import InsuranceNFT from '../../abis/InsuranceNFT.json';
+import Verify from '../../abis/Verify.json';
+import InsuranceDAO from '../../abis/InsuranceDAO.json';
 import React, { useState, useContext, useEffect } from "react";
 import Footer from '../components/Footer';
 import { useWeb3React } from "@web3-react/core";
 import { AccountContext } from '../App';
+
+const Web3 = require('web3');
 
 const Mint = function() {
   const [files, setFiles] = useState([]);
@@ -11,7 +16,7 @@ const Mint = function() {
 
   const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
 
-  const {globalAccount, setGlobalAccount, globalActive, setGlobalActive} = useContext(AccountContext);
+  const {globalAccount, setGlobalAccount, globalActive, setGlobalActive , globalChainId, setGlobalChainId} = useContext(AccountContext);
 
   useEffect(() => {
     const loadUserNFTData = async () => {
@@ -33,6 +38,7 @@ const Mint = function() {
       }
       setGlobalAccount(account);
       setGlobalActive(active);
+      setGlobalChainId(chainId);
       setFiles([]);
       setFileURL("");
       }
@@ -40,7 +46,38 @@ const Mint = function() {
       loadUserNFTData()
       .catch(console.error);
 
-  }, [account, active, globalActive, globalAccount])
+  }, [account, active, chainId, globalActive, globalAccount, globalChainId])
+
+  useEffect(() => {
+    const loadWeb3 = async () => {
+        if (window.ethereum) {
+          window.web3 = new Web3(window.ethereum)
+          await window.ethereum.enable()
+        }
+        else if (window.web3) {
+          window.web3 = new Web3(window.web3.currentProvider)
+        }
+        else {
+          window.alert('Non-Ethereum browser detected. You should consider trying MetaMask!')
+        }
+      }
+
+      const loadBlockchainData = async () => {
+        const web3 = window.web3;
+        const InsuranceNFTData = InsuranceNFT.networks[chainId];
+        const VerifyData = Verify.networks[chainId];
+        const InsuranceDAOData = InsuranceDAO.networks[chainId];
+        if(InsuranceNFTData){
+
+        }
+      }
+
+      loadWeb3()
+      .catch(console.error);
+      loadBlockchainData()
+      .catch(console.error);
+
+    }, [account, active, chainId, globalActive, globalAccount, globalChainId])
 
   function fileLoad(e) {
     var newFiles = e.target.files;
@@ -63,6 +100,10 @@ const Mint = function() {
     else{
       //convert to unix time
     }
+  }
+
+  const startMint = async () => {
+
   }
 
     return (
@@ -117,7 +158,7 @@ const Mint = function() {
 
                       <div className="spacer-10"></div>
 
-                      <input type="button" id="submit" className="btn-main" value="Mint Now"/>
+                      <input type="button" id="submit" className="btn-main" value="Mint Now" onClick={startMint}/>
                   </div>
               </form>
           </div>
@@ -137,20 +178,6 @@ const Mint = function() {
                               <img src={`${(files.length > 0) ? fileURL : "./img/collections/coll-item-3.jpg"}`} id="get_file_2" className="lazy nft__item_preview" alt=""/>
                           </span>
                       </div>
-                      {/*<div className="nft__item_info">
-                          <span >
-                              <h4>Pinky Ocean</h4>
-                          </span>
-                          <div className="nft__item_price">
-                              0.08 ETH<span>1/20</span>
-                          </div>
-                          <div className="nft__item_action">
-                              <span>Placeholder Text</span>
-                          </div>
-                          <div className="nft__item_like">
-                              <i className="fa fa-heart"></i><span>50</span>
-                          </div>                            
-                          </div> */}
                   </div>
               </div>                                         
       </div>

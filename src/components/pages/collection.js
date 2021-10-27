@@ -17,7 +17,7 @@ const [nftList, setNftList] = useState([]);
 
 const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
 
-const {globalAccount, setGlobalAccount, globalActive, setGlobalActive} = useContext(AccountContext);
+const {globalAccount, setGlobalAccount, globalActive, setGlobalActive, globalChainId, setGlobalChainId} = useContext(AccountContext);
 
 useEffect(() => {
   const loadUserNFTData = async () => {
@@ -32,12 +32,13 @@ useEffect(() => {
   }
   setGlobalAccount(account);
   setGlobalActive(active);
+  setGlobalChainId(chainId);
   }
 
   loadUserNFTData()
   .catch(console.error);
 
-}, [account, active])
+}, [account, active, chainId])
 
 const imageMap = {"0xA072f8Bd3847E21C8EdaAf38D7425631a2A63631" : "author-1", "0x3fd431F425101cCBeB8618A969Ed8AA7DFD115Ca": "author-2", 
 "0x42F9EC8f86B5829123fCB789B1242FacA6E4ef91" : "author-3", "0xa0Bb0815A778542454A26C325a5Ba2301C063b8c" : "author-4"}

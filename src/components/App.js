@@ -44,11 +44,12 @@ export const AccountContext = createContext({});
 const App=()=> {
   const [globalAccount, setGlobalAccount] = useState("");
   const [globalActive, setGlobalActive] = useState(false);
+  const [globalChainId, setGlobalChainId] = useState(0)
 
   return (
     <div className="wrapper">
       <GlobalStyles />
-      <AccountContext.Provider path ="/" value={{globalAccount, setGlobalAccount, globalActive, setGlobalActive}}>
+      <AccountContext.Provider path ="/" value={{globalAccount, setGlobalAccount, globalActive, setGlobalActive, globalChainId, setGlobalChainId}}>
         <Header/>
           <PosedRouter>
             <ScrollTop path="/">
