@@ -37,7 +37,7 @@ const Header= function() {
     const [openMenu3, setOpenMenu3] = React.useState(false);
 
     const injected = new InjectedConnector({
-      supportedChainIds: [1, 3, 4, 5, 42],
+      supportedChainIds: [1, 3, 4, 5, 42, 4690],
     })
   
     const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();

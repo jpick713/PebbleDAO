@@ -1,32 +1,75 @@
-import React, { Component } from "react";
-
+import React, { useState, useContext, useEffect } from "react";
 import Footer from '../components/Footer';
+import { useWeb3React } from "@web3-react/core";
+import { AccountContext } from '../App';
 
-export default class Createpage extends Component {
+const Mint = function() {
+  const [files, setFiles] = useState([]);
+  const [fileURL, setFileURL] = useState("");
+  const [start, setStart] = useState(0);
+  const [dateTime, setDateTime] = useState("");
 
-constructor() {
-    super();
-    this.onChange = this.onChange.bind(this);
-    this.state = {
-      files: [],
-    };
-  }
+  const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
 
-  onChange(e) {
-    var files = e.target.files;
-    console.log(files);
-    var filesArr = Array.prototype.slice.call(files);
+  const {globalAccount, setGlobalAccount, globalActive, setGlobalActive} = useContext(AccountContext);
+
+  useEffect(() => {
+    const loadUserNFTData = async () => {
+      if(active){
+        const response = await fetch(`/user-nfts/${account}`);
+        const body = await response.json();
+        if(body.start !== 0){
+          setStart(body.start);
+          setDateTime(dateTimeUnixConverter(Number(body.start) + 60, true));
+        }
+        else{
+          setStart(0);
+          setDateTime(dateTimeUnixConverter(Math.round(Date.now()/1000), true));
+        }
+      }
+      else{
+        setStart(0);
+        setDateTime(dateTimeUnixConverter(Math.round(Date.now()/1000), true));
+      }
+      setGlobalAccount(account);
+      setGlobalActive(active);
+      setFiles([]);
+      setFileURL("");
+      }
+    
+      loadUserNFTData()
+      .catch(console.error);
+
+  }, [account, active, globalActive, globalAccount])
+
+  function fileLoad(e) {
+    var newFiles = e.target.files;
+    console.log(newFiles);
+    var filesArr = Array.prototype.slice.call(newFiles);
     console.log(filesArr);
-    document.getElementById("file_name").style.display = "none";
-    this.setState({ files: [...this.state.files, ...filesArr] });
+    setFiles([...filesArr]);
+    setFileURL(URL.createObjectURL(newFiles[0]));
   }
 
-render() {
+  const imageMap = {"0xA072f8Bd3847E21C8EdaAf38D7425631a2A63631" : "author-1", "0x3fd431F425101cCBeB8618A969Ed8AA7DFD115Ca": "author-2", 
+    "0x42F9EC8f86B5829123fCB789B1242FacA6E4ef91" : "author-3", "0xa0Bb0815A778542454A26C325a5Ba2301C063b8c" : "author-4"}
+
+  function dateTimeUnixConverter(time, unixTime){
+    if(unixTime){
+      //convert to datetime
+      var date = new Date(time * 1000);
+      return `${date.getFullYear()}-${date.getMonth() < 9 ? `0${date.getMonth()+1}` : `${date.getMonth()+1}`}-${date.getDate() < 10 ? `0${date.getDate()}` : `${date.getDate()}`}T${date.getHours() < 10 ? `0${date.getHours()}` : `${date.getHours()}`}:${date.getMinutes() < 10 ? `0${date.getMinutes()}` : `${date.getMinutes()}`}`
+    }
+    else{
+      //convert to unix time
+    }
+  }
+
     return (
       <div>
 
-        <section className='jumbotron breadcumb no-bg'>
-          <div className='mainbreadcumb'>
+        <section className='jumbotron breadcrumb no-bg'>
+          <div className='mainbreadcrumb'>
             <div className='container'>
               <div className='row m-10-hor'>
                 <div className='col-12'>
@@ -46,13 +89,13 @@ render() {
                       <h5>Upload file</h5>
 
                       <div className="d-create-file">
-                          <p id="file_name">PNG, JPG, GIF, WEBP or MP4. Max 200mb.</p>
-                          {this.state.files.map(x => 
-                          <p key="{index}">PNG, JPG, GIF, WEBP or MP4. Max 200mb.{x.name}</p>
+                          {files.length === 0 && <p id="file_name">PNG, JPG, GIF, WEBP or MP4. Max 200mb.</p>}
+                          {files.map((x, index) => 
+                          <p key={`${index}`}>{x.name}</p>
                           )}
                           <div className='browse'>
                             <input type="button" id="get_file" className="btn-main" value="Browse"/>
-                            <input id='upload_file' type="file" multiple onChange={this.onChange} />
+                            <input id='upload_file' type="file" onChange={fileLoad} />
                           </div>
                           
                       </div>
@@ -69,13 +112,8 @@ render() {
 
                       <div className="spacer-10"></div>
 
-                      <h5>Price</h5>
-                      <input type="text" name="item_price" id="item_price" className="form-control" placeholder="enter price for one item (ETH)" />
-
-                      <div className="spacer-10"></div>
-
-                      <h5>Royalties</h5>
-                      <input type="text" name="item_royalties" id="item_royalties" className="form-control" placeholder="suggested: 0, 10%, 20%, 30%. Maximum is 70%" />
+                      <h5>Start Date</h5>
+                      <input type="datetime-local" name="start_date" id="start_date" className="form-control" value = {dateTime}/>
 
                       <div className="spacer-10"></div>
 
@@ -90,16 +128,16 @@ render() {
                       
                       <div className="author_list_pp">
                           <span>                                    
-                              <img className="lazy" src="./img/author/author-1.jpg" alt=""/>
+                              <img className="lazy" src={`./img/author/${(account in imageMap) ? imageMap[account] : "author-5"}.jpg`} alt=""/>
                               <i className="fa fa-check"></i>
                           </span>
                       </div>
                       <div className="nft__item_wrap">
                           <span>
-                              <img src="./img/collections/coll-item-3.jpg" id="get_file_2" className="lazy nft__item_preview" alt=""/>
+                              <img src={`${(files.length > 0) ? fileURL : "./img/collections/coll-item-3.jpg"}`} id="get_file_2" className="lazy nft__item_preview" alt=""/>
                           </span>
                       </div>
-                      <div className="nft__item_info">
+                      {/*<div className="nft__item_info">
                           <span >
                               <h4>Pinky Ocean</h4>
                           </span>
@@ -112,7 +150,7 @@ render() {
                           <div className="nft__item_like">
                               <i className="fa fa-heart"></i><span>50</span>
                           </div>                            
-                      </div> 
+                          </div> */}
                   </div>
               </div>                                         
       </div>
@@ -122,5 +160,6 @@ render() {
         <Footer />
       </div>
    );
-  }
+  
 }
+export default Mint;

@@ -4,11 +4,13 @@ const InsuranceDAO = require('./src/abis/InsuranceDAO.json');
 const express = require('express'); 
 require('dotenv').config();
 const Web3 = require('web3');
+const pinataSDK = require('@pinata/sdk');
 const fs = require('fs');
 const { ApolloClient, HttpLink, DefaultOptions, InMemoryCache } = require('@apollo/client/core');
 const fetch = require('cross-fetch');
 const gql = require('graphql-tag');
 const protobuf = require("protobufjs");
+const pinata = pinataSDK(process.env.PERSONAL_PINATA_PUBLIC_KEY, process.env.PERSONAL_PINATA_SECRET_KEY);
 const projectID = process.env.PROJECT_ID;
 const app = express(); 
 const testNet = process.env.TEST_NET;
@@ -45,9 +47,21 @@ app.get('/nft-store/:address', async (req, res) => {
 app.get('/user-nfts/:address', async (req, res) => {
   const address = req.params.address;
   console.log(address);
-  object = await dataFetch(address, true) 
-
-res.send({success : address, results : object}); 
+  const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
+  const start = await NFTInstance.methods.lastTimeStampNFTUsed(address).call();
+  let tokenURIs = [tokenIds.length];
+  if(tokenIds.length==0){
+    res.send({success: false, results : [], start : 0})
+  }
+  else{
+    
+    for (var i =0; i<tokenIds.length; i++){
+      tokenURIs[i] =  await NFTInstance.methods.tokenURI(tokenIds[i]).call();
+    }
+    
+    res.send({success : true, results : tokenURIs, start : start});
+  }
+ 
 });
 
 app.get('/mint/:address', async (req, res) => {
@@ -135,4 +149,27 @@ async function recordsFetch(IMEI, start, amount) {
   });
 
   return queryResult.data.deviceRecords
+}
+
+async function uploadImagePinata(file){
+  //first part handles the pinning from a folder
+  
+  let options = { pinataMetadata: 
+      {keyvalues: {
+          'number' : 0,
+          
+      }}, 
+      pinataOptions: { cidVersion: 0 }
+  };
+
+  let readableStreamforFile;
+             
+  readableStreamforFile = fs.createReadStream(`${file}`);
+              
+  //options.pinataMetadata.keyvalues.description = `This is image ${imageNumber}`;
+  const result = await pinata.pinFileToIPFS(readableStreamforFile, options)
+                        .catch((err) => {console.log(err);});
+
+  return result.IPFSHash;
+              
 }

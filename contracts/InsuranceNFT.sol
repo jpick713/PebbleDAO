@@ -19,6 +19,7 @@ contract InsuranceNFT is ERC721URIStorage, Ownable{
     uint private whiteListNumber;// number of whiteListed addresses
     //string public baseURI; //the base URI
     mapping (address => uint) public lastBlockNumberUpdate; // track mint/update of NFTs per address;
+    mapping (address => uint) public lastTimeStampNFTUsed; // last timestamp we used for minting NFT
     mapping (address => uint[]) internal tokensByAddress;//track all NFTs owned by a user
 
     uint public currentTokenIdMax; // for ease of access public call
@@ -37,7 +38,7 @@ contract InsuranceNFT is ERC721URIStorage, Ownable{
         emit ReceiveCalled(msg.sender, msg.value);
     }
 
-    function mintTokens(string memory _tokenURI, bytes32 r, bytes32 s, uint8 v) public {  
+    function mintTokens(string memory _tokenURI, uint256 lastTimeStamp, bytes32 r, bytes32 s, uint8 v) public {  
         require(verifyContract.metaDataVerify(_msgSender(), _tokenURI, 0, r, s, v), "not verified");
         uint256 newItemId;
         _tokenIds.increment();
@@ -47,16 +48,18 @@ contract InsuranceNFT is ERC721URIStorage, Ownable{
         _setTokenURI(newItemId, _tokenURI);
         lastBlockNumberUpdate[_msgSender()] = block.number;
         tokensByAddress[_msgSender()].push(newItemId);
+        lastTimeStampNFTUsed[_msgSender()] = lastTimeStamp;
         currentTokenIdMax = newItemId;
         emit NFTMinted(msg.sender, _tokenURI);
     }
 
-    function updateTokenURI(uint _tokenId, string memory _newTokenURI, bytes32 r, bytes32 s, uint8 v) public {
+    function updateTokenURI(uint _tokenId, string memory _newTokenURI, uint256 lastTimeStamp, bytes32 r, bytes32 s, uint8 v) public {
         require(_msgSender()== ownerOf(_tokenId), "not token owner");
         //call verify(_msgSender(), _tokenURI, tokenId)
         require(verifyContract.metaDataVerify(_msgSender(), _newTokenURI, _tokenId, r, s, v), "not verified");
         _setTokenURI(_tokenId, _newTokenURI);
         lastBlockNumberUpdate[_msgSender()] = block.number;
+        lastTimeStampNFTUsed[_msgSender()] = lastTimeStamp;
     }
 
     function setDAOContract(address payable _DAOAddress) public onlyOwner{

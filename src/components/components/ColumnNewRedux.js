@@ -5,15 +5,19 @@ import * as actions from '../../store/actions/thunks';
 import { clearNfts } from '../../store/actions';
 import NftCard from './NftCard';
 import { shuffleArray } from '../../store/utils';
+import { propTypes } from 'react-bootstrap/esm/Image';
 
 //react functional component
-const ColumnNewRedux = ({ showLoadMore = true, shuffle = false }) => {
-
+const ColumnNewRedux = (props) => {
+    const shuffle = false;
     const dispatch = useDispatch();
     const nftsState = useSelector(selectors.nftBreakdownState);
     const nfts = nftsState.data ? shuffle ? shuffleArray(nftsState.data) : nftsState.data : [];
+    const nftObj = {props}
+    //const nftsList = {props};
 
     const [height, setHeight] = useState(0);
+    const [nftsList, setNftsList] = useState([])
 
     const onImgLoad = ({target:img}) => {
         let currentHeight = height;
@@ -42,11 +46,8 @@ const ColumnNewRedux = ({ showLoadMore = true, shuffle = false }) => {
             {nfts && nfts.map( (nft, index) => (
                 <NftCard nft={nft} key={index} onImgLoad={onImgLoad} height={height} />
             ))}
-            { showLoadMore && nfts.length <= 20 &&
-                <div className='col-lg-12'>
-                    <div className="spacer-single"></div>
-                    <span onClick={loadMore} className="btn-main lead m-auto">Load More</span>
-                </div>
+            {
+                /*nftsList later*/
             }
         </div>              
     );

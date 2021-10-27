@@ -3,9 +3,7 @@ import ColumnNewRedux from '../components/ColumnNewRedux';
 import Footer from '../components/Footer';
 import { createGlobalStyle } from 'styled-components';
 import { useWeb3React } from "@web3-react/core";
-import { InjectedConnector } from '@web3-react/injected-connector'
 import { AccountContext } from '../App';
-
 
 const GlobalStyles = createGlobalStyle`
   header#myHeader.navbar.white {
@@ -15,7 +13,6 @@ const GlobalStyles = createGlobalStyle`
 
 const Collection= function(props) {
 const [openMenu, setOpenMenu] = React.useState(true);
-const [openMenu1, setOpenMenu1] = React.useState(false);
 const [nftList, setNftList] = useState([]);
 
 const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
@@ -25,9 +22,13 @@ const {globalAccount, setGlobalAccount, globalActive, setGlobalActive} = useCont
 useEffect(() => {
   const loadUserNFTData = async () => {
   if(active){
-    const response = await fetch(`/nft-store/${account}`);
+    const response = await fetch(`/user-nfts/${account}`);
     const body = await response.json();
-    
+    nftList = body.results;
+    setNftList(body.results);
+  }
+  else{
+    setNftList([]);
   }
   setGlobalAccount(account);
   setGlobalActive(active);
@@ -38,21 +39,8 @@ useEffect(() => {
 
 }, [account, active])
 
-
-const handleBtnClick = () => {
-  setOpenMenu(!openMenu);
-  setOpenMenu1(false);
-  document.getElementById("Mainbtn").classList.add("active");
-  document.getElementById("Mainbtn1").classList.remove("active");
-};
-const handleBtnClick1 = () => {
-  setOpenMenu1(!openMenu1);
-  setOpenMenu(false);
-  document.getElementById("Mainbtn1").classList.add("active");
-  document.getElementById("Mainbtn").classList.remove("active");
-};
-
-
+const imageMap = {"0xA072f8Bd3847E21C8EdaAf38D7425631a2A63631" : "author-1", "0x3fd431F425101cCBeB8618A969Ed8AA7DFD115Ca": "author-2", 
+"0x42F9EC8f86B5829123fCB789B1242FacA6E4ef91" : "author-3", "0xa0Bb0815A778542454A26C325a5Ba2301C063b8c" : "author-4"}
 
 return (
 <div>
@@ -69,7 +57,7 @@ return (
          <div className="d_profile">
                   <div className="profile_avatar">
                       <div className="d_profile_img">
-                          <img src="./img/author/author-1.jpg" alt=""/>
+                          <img src={`./img/author/${(account in imageMap) ? imageMap[account] : "author-5"}.jpg`} alt=""/>
                           <i className="fa fa-check"></i>
                       </div>
                       
@@ -88,28 +76,12 @@ return (
   </section>
 
   <section className='container no-top'>
-        <div className='row'>
-          <div className='col-lg-12'>
-              <div className="items_filter">
-                <ul className="de_nav">
-                    <li id='Mainbtn' className="active"><span onClick={handleBtnClick}>Placeholder Filter</span></li>
-                    <li id='Mainbtn1' className=""><span onClick={handleBtnClick1}>Placeholder Filter</span></li>
-                </ul>
-            </div>
-          </div>
-        </div>
       {openMenu && (  
-        <div id='zero1' className='onStep fadeIn'>
-         <ColumnNewRedux shuffle showLoadMore={false}/>
+        <div key = {account} id='zero1' className='onStep fadeIn'>
+         <ColumnNewRedux nftList={nftList}/>
         </div>
-      )}
-      {openMenu1 && ( 
-        <div id='zero2' className='onStep fadeIn'>
-         <ColumnNewRedux shuffle showLoadMore={false}/>
-        </div>
-      )}
-      </section>
-
+      )}  
+  </section>
 
   <Footer />
 </div>

@@ -8,9 +8,15 @@ import "./InsuranceNFT.sol";
 
 
 contract InsuranceDAO is Ownable{
+    using Counters for Counters.Counter;
+    
+    Counters.Counter private _round;
 
     mapping (uint256 => uint256) public costSchedule;//costs for each driver NFT
+    uint public payoutCap = 0.5 ether;//payout cap per block
     uint256[][2] internal penaltyLevels; //penalty and acceleration levels
+    mapping (uint => mapping (address => uint)) public roundBalances; //deposit minus any payouts in current round
+    mapping (address => uint) public levelsEntered;//level of each driver originally
     Verify verifyContract; //verifying contract
     InsuranceNFT NFTInstance;//NFT contract
 
