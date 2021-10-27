@@ -5,7 +5,7 @@ import { createGlobalStyle } from 'styled-components';
 import { useWeb3React } from "@web3-react/core";
 import { InjectedConnector } from '@web3-react/injected-connector'
 import { AccountContext } from '../App';
-//const Web3 = require('web3');
+
 
 const GlobalStyles = createGlobalStyle`
   header#myHeader.navbar.white {
@@ -16,14 +16,26 @@ const GlobalStyles = createGlobalStyle`
 const Collection= function(props) {
 const [openMenu, setOpenMenu] = React.useState(true);
 const [openMenu1, setOpenMenu1] = React.useState(false);
+const [nftList, setNftList] = useState([]);
 
 const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
 
 const {globalAccount, setGlobalAccount, globalActive, setGlobalActive} = useContext(AccountContext);
 
 useEffect(() => {
+  const loadUserNFTData = async () => {
+  if(active){
+    const response = await fetch(`/nft-store/${account}`);
+    const body = await response.json();
+    
+  }
   setGlobalAccount(account);
   setGlobalActive(active);
+  }
+
+  loadUserNFTData()
+  .catch(console.error);
+
 }, [account, active])
 
 
