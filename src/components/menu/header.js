@@ -174,7 +174,7 @@ const Header= function() {
                     </div>
                     <div className='navbar-item'>
                       <NavLink to="/holdings" onClick={() => btn_icon(!showmenu)}>
-                        Holdings
+                        DAO Holdings
                       </NavLink>
                     </div>
                     <div className='navbar-item'>
@@ -205,7 +205,7 @@ const Header= function() {
                     </div>
                     <div className='navbar-item'>
                       <NavLink to="/holdings">
-                      Holdings
+                      DAO Holdings
                       <span className='lines'></span>
                       </NavLink>
                     </div>

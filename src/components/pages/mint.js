@@ -5,6 +5,7 @@ import React, { useState, useContext, useEffect } from "react";
 import Footer from '../components/Footer';
 import { useWeb3React } from "@web3-react/core";
 import { AccountContext } from '../App';
+import axios from 'axios';
 
 const Web3 = require('web3');
 
@@ -13,6 +14,14 @@ const Mint = function() {
   const [fileURL, setFileURL] = useState("");
   const [start, setStart] = useState(0);
   const [dateTime, setDateTime] = useState("");
+  const [currentImageURI, setCurrentImageURI] = useState("");
+  const [amountRuns, setAmountRuns] = useState(100);
+  const [penaltyLevels, setPenaltyLevels] = useState([]);
+  const [accLevels, setAccLevels] = useState([]);
+  const [NFTContract, setNFTContract] = useState();
+  const [VerifyContract, setVerifyContract] = useState();
+  const [DAOContract, setDAOContract] = useState();
+
 
   const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
 
@@ -69,6 +78,7 @@ const Mint = function() {
         const InsuranceDAOData = InsuranceDAO.networks[chainId];
         if(InsuranceNFTData){
 
+
         }
       }
 
@@ -103,8 +113,36 @@ const Mint = function() {
   }
 
   const startMint = async () => {
+    if(!active){
+      window.alert("connect with wallet");
+      return;
+    }
+    if (files.length === 0 ){
+      window.alert("upload an image before minting");
+      return;
+    }
+    const file = files[0];
+    if(!(['jpg', 'png', 'gif', 'mp4'].includes(file.name.slice(-3).toLowerCase())) && file.name.slice(-4).toLowerCase() !== 'webp'){
+      window.alert("incorrect file extension");
+      return;
+    }
+    const startMint = Math.floor(Number(dateTimeUnixConverter(dateTime, false)));
+    const formData = new FormData();
+    formData.append('avatar', file);
 
-  }
+    const mintRes = await axios.post(`/mint-upload/${account}`, formData, {
+    headers: {
+      'Content-type': 'multipart/form-data'
+    }
+  });
+
+  //alert uploaded to pinata
+  setCurrentImageURI(mintRes.imageURL);
+
+  //call mint function with start, runs, and image URI
+  
+
+}
 
     return (
       <div>
@@ -143,18 +181,13 @@ const Mint = function() {
 
                       <div className="spacer-single"></div>
 
-                      <h5>Title</h5>
-                      <input type="text" name="item_title" id="item_title" className="form-control" placeholder="e.g. 'Crypto Funk" />
-
-                      <div className="spacer-10"></div>
-
-                      <h5>Description</h5>
-                      <textarea data-autoresize name="item_desc" id="item_desc" className="form-control" placeholder="e.g. 'This is very limited item'"></textarea>
+                      <h5>Data Points (min: 100, max : 500)</h5>
+                      <input type="number" name="item_title" id="item_title" className="form-control" value = {amountRuns} onChange = {(e) => {setAmountRuns(e.target.value)}} />
 
                       <div className="spacer-10"></div>
 
                       <h5>Start Date</h5>
-                      <input type="datetime-local" name="start_date" id="start_date" className="form-control" value = {dateTime}/>
+                      <input type="datetime-local" name="start_date" id="start_date" className="form-control" value = {dateTime} onChange = {(e) => {setDateTime(e.target.value)}}/>
 
                       <div className="spacer-10"></div>
 

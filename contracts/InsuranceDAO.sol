@@ -14,7 +14,8 @@ contract InsuranceDAO is Ownable{
 
     mapping (uint256 => uint256) public costSchedule;//costs for each driver NFT
     uint public payoutCap = 0.5 ether;//payout cap per block
-    uint256[][2] internal penaltyLevels; //penalty and acceleration levels
+    uint256[] internal penaltyLevels; //penalty and acceleration levels
+    uint256[] internal accLevels; //levels acceleration where penalites occur
     mapping (uint => mapping (address => uint)) public roundBalances; //deposit minus any payouts in current round
     mapping (address => uint) public levelsEntered;//level of each driver originally
     Verify verifyContract; //verifying contract
@@ -22,6 +23,7 @@ contract InsuranceDAO is Ownable{
 
     constructor(address _verifyAddress){
         verifyContract = Verify(_verifyAddress);
+        _round.increment();
     }
 
     receive() payable external{
@@ -39,17 +41,31 @@ contract InsuranceDAO is Ownable{
 
     function setPenalties(uint[] memory levels, uint[] memory penalties) public onlyOwner{
         require(levels.length == penalties.length, "arr lengths");
+        uint[] memory tempLevels = new uint[](levels.length);
+        uint[] memory tempPenalties = new uint[](levels.length);
+
         for (uint8 i=0; i<levels.length; i++){
-            penaltyLevels[i][0] = levels[i];
-            penaltyLevels[i][1] = penalties[i]; 
+            tempLevels[i] = levels[i];
+            tempPenalties[i] = penalties[i]; 
         }
+        accLevels = tempLevels;
+        penaltyLevels = tempPenalties;
     }
 
     function setNFTContract(address payable NFTContract) public onlyOwner{
         NFTInstance = InsuranceNFT(NFTContract);
     } 
 
-    function getPenaltyLevels() public view returns(uint[][2] memory){
+    function getPenaltyLevels() public view returns(uint[] memory){
         return penaltyLevels;
+    }
+
+    function getAccLevels() public view returns(uint[] memory){
+        return accLevels;
+    }
+
+    function getCurrentRound() public view returns(uint){
+        uint currentRound = _round.current();
+        return currentRound;
     }
 }

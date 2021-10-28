@@ -1,10 +1,13 @@
 const InsuranceNFT = require('./src/abis/InsuranceNFT.json');
 const Verify = require('./src/abis/Verify.json');
 const InsuranceDAO = require('./src/abis/InsuranceDAO.json');
-const express = require('express'); 
+const express = require('express');
+const multer = require('multer');
+const cors = require('cors');
 require('dotenv').config();
 const Web3 = require('web3');
 const pinataSDK = require('@pinata/sdk');
+const sleep = require('sleep');
 const fs = require('fs');
 const { ApolloClient, HttpLink, DefaultOptions, InMemoryCache } = require('@apollo/client/core');
 const fetch = require('cross-fetch');
@@ -16,6 +19,8 @@ const app = express();
 const testNet = process.env.TEST_NET;
 const contractAddressKovan = process.env.KOVAN_CONTRACT_ADDRESS;
 const contractAddressIotex = process.env.IOTEX_CONTRACT_ADDRESS;
+const upload = multer({dest: 'uploads/'})
+
 let web3;
 let chainId;
 
@@ -33,6 +38,8 @@ const port = process.env.SERVER_PORT || 6000;
 const NFTInstance = new web3.eth.Contract(InsuranceNFT.abi, InsuranceNFT.networks[chainId].address);
 const VerifyInstance = new web3.eth.Contract(Verify.abi, Verify.networks[chainId].address);
 const DAOInstance = new web3.eth.Contract(InsuranceDAO.abi, InsuranceDAO.networks[chainId].address);
+
+app.use(cors());
 
 app.listen(port, () => console.log(`Listening on port ${port}`));
   
@@ -96,6 +103,18 @@ app.get('/mint/:address', async (req, res) => {
   res.send({success : true, IMEI : deviceIMEI });
 })
 
+app.post('/mint-upload/:address', upload.single('avatar'), async (req, res) => {
+  const address = req.params.address;
+  console.log(address)
+  const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
+  console.log(req.file)
+  fs.renameSync(req.file.path, `./uploads/${address}_${tokenIds.length}.png`);
+  const urlHash = await uploadImagePinata(`uploads/${address}_${tokenIds.length}.png`);
+  console.log(urlHash.IpfsHash);
+  res.send({success : true, imageURL : urlHash.IpfsHash})
+
+})
+
 
 async function dataFetch(Address, owner) {
   const client = new ApolloClient({
@@ -154,22 +173,18 @@ async function recordsFetch(IMEI, start, amount) {
 async function uploadImagePinata(file){
   //first part handles the pinning from a folder
   
-  let options = { pinataMetadata: 
-      {keyvalues: {
-          'number' : 0,
-          
-      }}, 
+  let options = { 
       pinataOptions: { cidVersion: 0 }
   };
 
   let readableStreamforFile;
              
-  readableStreamforFile = fs.createReadStream(`${file}`);
+  readableStreamforFile = fs.createReadStream(`./${file}`);
               
   //options.pinataMetadata.keyvalues.description = `This is image ${imageNumber}`;
   const result = await pinata.pinFileToIPFS(readableStreamforFile, options)
                         .catch((err) => {console.log(err);});
 
-  return result.IPFSHash;
+  return result;
               
 }
