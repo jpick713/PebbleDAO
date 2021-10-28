@@ -6,6 +6,8 @@ import Footer from '../components/Footer';
 import { useWeb3React } from "@web3-react/core";
 import { AccountContext } from '../App';
 import axios from 'axios';
+import Table from 'react-bootstrap/Table';
+import { formatEther } from '@ethersproject/units';
 
 const Web3 = require('web3');
 
@@ -18,6 +20,7 @@ const Mint = function() {
   const [amountRuns, setAmountRuns] = useState(100);
   const [penaltyLevels, setPenaltyLevels] = useState([]);
   const [accLevels, setAccLevels] = useState([]);
+  const [costLevels, setCostLevels] = useState([]);
   const [NFTContract, setNFTContract] = useState();
   const [VerifyContract, setVerifyContract] = useState();
   const [DAOContract, setDAOContract] = useState();
@@ -77,8 +80,24 @@ const Mint = function() {
         const VerifyData = Verify.networks[chainId];
         const InsuranceDAOData = InsuranceDAO.networks[chainId];
         if(InsuranceNFTData){
-
-
+          const NFTContract = new web3.eth.Contract(InsuranceNFT.abi, InsuranceNFTData.address);
+          const VerifyContract = new web3.eth.Contract(Verify.abi, VerifyData.address);
+          const DAOContract = new web3.eth.Contract(InsuranceDAO.abi, InsuranceDAOData.address);
+          setNFTContract(NFTContract);
+          setVerifyContract(VerifyContract);
+          setDAOContract(DAOContract);
+          const penaltyLevels = await DAOContract.methods.getPenaltyLevels().call();
+          const accLevels = await DAOContract.methods.getAccLevels().call();
+          const costLevels = await DAOContract.methods.getCosts().call();
+          setPenaltyLevels(penaltyLevels);
+          setAccLevels(accLevels);
+          setCostLevels(costLevels);
+        }
+        else{
+          setNFTContract(null);
+          setVerifyContract(null);
+          setDAOContract(null);
+          window.alert('contract not deployed to detected network.');
         }
       }
 
@@ -101,14 +120,13 @@ const Mint = function() {
   const imageMap = {"0xA072f8Bd3847E21C8EdaAf38D7425631a2A63631" : "author-1", "0x3fd431F425101cCBeB8618A969Ed8AA7DFD115Ca": "author-2", 
     "0x42F9EC8f86B5829123fCB789B1242FacA6E4ef91" : "author-3", "0xa0Bb0815A778542454A26C325a5Ba2301C063b8c" : "author-4"}
 
+  const ratingMap = {"1" : "Poor", "2" : "Fair", "3" : "Good", "4" : "Great", "5" : "Pristine"}
+
   function dateTimeUnixConverter(time, unixTime){
     if(unixTime){
       //convert to datetime
       var date = new Date(time * 1000);
       return `${date.getFullYear()}-${date.getMonth() < 9 ? `0${date.getMonth()+1}` : `${date.getMonth()+1}`}-${date.getDate() < 10 ? `0${date.getDate()}` : `${date.getDate()}`}T${date.getHours() < 10 ? `0${date.getHours()}` : `${date.getHours()}`}:${date.getMinutes() < 10 ? `0${date.getMinutes()}` : `${date.getMinutes()}`}`
-    }
-    else{
-      //convert to unix time
     }
   }
 
@@ -126,7 +144,17 @@ const Mint = function() {
       window.alert("incorrect file extension");
       return;
     }
-    const startMint = Math.floor(Number(dateTimeUnixConverter(dateTime, false)));
+    const startMint = Math.round(Number(Date.parse(dateTime))/1000);
+    if(start ==0){
+      if(startMint < (Math.round(Date.now()/1000) - 12*30*24*3600)){
+        window.alert('must choose a start time within past year!');
+        return;
+      } 
+    }
+    else if (start <= startMint){
+      window.alert('choose a start time after timestamp of your last data used in NFTs!');
+        return;
+    }
     const formData = new FormData();
     formData.append('avatar', file);
 
@@ -159,8 +187,8 @@ const Mint = function() {
           </div>
         </section>
 
-        <section className='container'>
-
+        <section className='container' style={{paddingBottom: "0.1em"}}>
+      {Math.round(Number(Date.parse(dateTime))/1000)}
         <div className="row">
           <div className="col-lg-7 offset-lg-1 mb-5">
               <form id="form-create-item" className="form-border" action="#">
@@ -216,6 +244,60 @@ const Mint = function() {
       </div>
 
       </section>
+
+      {penaltyLevels.length > 0 && <section className='container' style={{paddingTop:0}}>
+      <div className="row">
+          <div className="col-lg-5 mb-5" >
+            <Table striped bordered hover size="md" >
+              <thead style={{backgroundColor: "white", border : "2px solid black"}}>
+                <tr>
+                <th>Levels</th>
+                <th>Penalty Score</th>
+                <th>Acc Levels</th>
+                
+                </tr>
+              </thead>
+              <tbody>
+                  {penaltyLevels.map((val, index) => {
+                    let currentVal =0;
+                    if(index > 0){
+                      for(var i =0; i<=index; i++){
+                        currentVal += Number(penaltyLevels[i]);
+                      }
+                    }
+                    return (<tr style={{backgroundColor: "white", border : "2px solid black"}}>
+                              <td>{index+1}</td>
+                              {index===0 ? <td>{val}</td> : <td>{currentVal}</td>}
+                              <td>{accLevels[index]}</td>
+                              {/*<td>{formatEther(costLevels[index])} ETH</td>*/}
+                            </tr>)
+                  })}
+              </tbody>        
+
+            </Table>
+          </div>
+          
+          <div className="col-lg-5 offset-lg-1 mb-5" >
+              <Table striped bordered hover size="md" >
+                <thead style={{backgroundColor: "white", border : "2px solid black"}}>
+                  <tr>
+                    <th>Rating</th>
+                    <th>DAO Costs</th>                 
+                  </tr>
+                </thead>
+                <tbody>
+                    {costLevels.map((val, index) => {
+                      return (<tr style={{backgroundColor: "white", border : "2px solid black"}}>
+                                <td>{ratingMap[index+1]}</td>                                
+                                <td>{formatEther(costLevels[index])} ETH</td>
+                              </tr>)
+                    })}
+                </tbody>        
+
+              </Table>
+          </div>
+        </div>
+      </section>}
 
         <Footer />
       </div>

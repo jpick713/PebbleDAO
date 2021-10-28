@@ -12,7 +12,7 @@ contract InsuranceDAO is Ownable{
     
     Counters.Counter private _round;
 
-    mapping (uint256 => uint256) public costSchedule;//costs for each driver NFT
+    uint256[] internal costSchedule;//costs for each driver NFT
     uint public payoutCap = 0.5 ether;//payout cap per block
     uint256[] internal penaltyLevels; //penalty and acceleration levels
     uint256[] internal accLevels; //levels acceleration where penalites occur
@@ -30,13 +30,20 @@ contract InsuranceDAO is Ownable{
 
     }
 
-    function setCostSchedule(uint[] memory levels, uint[] memory costs) public onlyOwner{
-        require(levels.length == costs.length, "arr lengths");
-        for(uint8 i=0; i<levels.length; i++){
-            if(levels[i]>=1 && levels[i] <= 5){
-                costSchedule[levels[i]] = costs[i];
+    function setCostSchedule(uint[] memory costs) public onlyOwner{
+        require(costs.length >= 1, "no costs");
+        uint256 maxCost = 0;
+        bool validCosts = true;
+        for(uint8 i=0; i<costs.length; i++){
+            if(costs[i] < maxCost){
+                validCosts = false;
+            }
+            else{
+                maxCost = costs[i];
             }
         }
+        require(validCosts , "invalid costs");
+        costSchedule = costs;
     }
 
     function setPenalties(uint[] memory levels, uint[] memory penalties) public onlyOwner{
@@ -62,6 +69,10 @@ contract InsuranceDAO is Ownable{
 
     function getAccLevels() public view returns(uint[] memory){
         return accLevels;
+    }
+
+    function getCosts() public view returns(uint[] memory){
+        return costSchedule;
     }
 
     function getCurrentRound() public view returns(uint){
