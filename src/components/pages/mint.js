@@ -120,7 +120,8 @@ const Mint = function() {
   const imageMap = {"0xA072f8Bd3847E21C8EdaAf38D7425631a2A63631" : "author-1", "0x3fd431F425101cCBeB8618A969Ed8AA7DFD115Ca": "author-2", 
     "0x42F9EC8f86B5829123fCB789B1242FacA6E4ef91" : "author-3", "0xa0Bb0815A778542454A26C325a5Ba2301C063b8c" : "author-4"}
 
-  const ratingMap = {"1" : "Poor", "2" : "Fair", "3" : "Good", "4" : "Great", "5" : "Pristine"}
+  const ratingMap = {"1" : "Pristine", "2" : "Great", "3" : "Good", "4" : "Fair", "5" : "Poor"}
+  const scoreMap = {"1" : "< 2", "2" : "2-3", "3" : "3-5", "4" : "5-7", "5" : "> 7"}
 
   function dateTimeUnixConverter(time, unixTime){
     if(unixTime){
@@ -128,6 +129,19 @@ const Mint = function() {
       var date = new Date(time * 1000);
       return `${date.getFullYear()}-${date.getMonth() < 9 ? `0${date.getMonth()+1}` : `${date.getMonth()+1}`}-${date.getDate() < 10 ? `0${date.getDate()}` : `${date.getDate()}`}T${date.getHours() < 10 ? `0${date.getHours()}` : `${date.getHours()}`}:${date.getMinutes() < 10 ? `0${date.getMinutes()}` : `${date.getMinutes()}`}`
     }
+  }
+
+  function displayStart(time){
+    var date = new Date(time * 1000);
+    let hours;
+    const modifier = (date.getHours<12 ? "AM" : "PM");
+    if(date.getHours()===0 || date.getHours()===12){
+      hours = 12;
+    }
+    else{
+      hours = date.getHours() % 12;
+    }
+    return `${date.getFullYear()}-${date.getMonth() < 9 ? `0${date.getMonth()+1}` : `${date.getMonth()+1}`}-${date.getDate() < 10 ? `0${date.getDate()}` : `${date.getDate()}`} ${hours < 10 ? `0${hours}` : `${hours}`}:${date.getMinutes() < 10 ? `0${date.getMinutes()}` : `${date.getMinutes()}`} ${modifier}`
   }
 
   const startMint = async () => {
@@ -155,19 +169,24 @@ const Mint = function() {
       window.alert('choose a start time after timestamp of your last data used in NFTs!');
         return;
     }
+    if(!(amountRuns >= 100 && amountRuns <= 500)){
+      window.alert('number of data points from pebble tracker must be between 100 and 500');
+      return;
+    }
     const formData = new FormData();
     formData.append('avatar', file);
 
-    const mintRes = await axios.post(`/mint-upload/${account}`, formData, {
+    const mintImageRes = await axios.post(`/mint-upload/${account}`, formData, {
     headers: {
       'Content-type': 'multipart/form-data'
     }
   });
 
   //alert uploaded to pinata
-  setCurrentImageURI(mintRes.imageURL);
+  setCurrentImageURI(mintImageRes.data.imageURL);
 
   //call mint function with start, runs, and image URI
+  const mintRes = await fetch(`/mint/${account}?runs=${amountRuns}&start=${startMint}&imageuri=${mintImageRes.data.imageURL}`);
   
 
 }
@@ -188,7 +207,6 @@ const Mint = function() {
         </section>
 
         <section className='container' style={{paddingBottom: "0.1em"}}>
-      {Math.round(Number(Date.parse(dateTime))/1000)}
         <div className="row">
           <div className="col-lg-7 offset-lg-1 mb-5">
               <form id="form-create-item" className="form-border" action="#">
@@ -214,7 +232,7 @@ const Mint = function() {
 
                       <div className="spacer-10"></div>
 
-                      <h5>Start Date</h5>
+                      <h5>Start Date &ensp;(your start must be after {start === 0 ? <span>{displayStart(Math.round(Date.now()/1000) - 12*30*24*3600)}</span> : <span>{displayStart(start)}</span>})</h5>
                       <input type="datetime-local" name="start_date" id="start_date" className="form-control" value = {dateTime} onChange = {(e) => {setDateTime(e.target.value)}}/>
 
                       <div className="spacer-10"></div>
@@ -269,7 +287,6 @@ const Mint = function() {
                               <td>{index+1}</td>
                               {index===0 ? <td>{val}</td> : <td>{currentVal}</td>}
                               <td>{accLevels[index]}</td>
-                              {/*<td>{formatEther(costLevels[index])} ETH</td>*/}
                             </tr>)
                   })}
               </tbody>        
@@ -282,7 +299,8 @@ const Mint = function() {
                 <thead style={{backgroundColor: "white", border : "2px solid black"}}>
                   <tr>
                     <th>Rating</th>
-                    <th>DAO Costs</th>                 
+                    <th>DAO Costs</th>
+                    <th>AVG Scores</th>                 
                   </tr>
                 </thead>
                 <tbody>
@@ -290,6 +308,7 @@ const Mint = function() {
                       return (<tr style={{backgroundColor: "white", border : "2px solid black"}}>
                                 <td>{ratingMap[index+1]}</td>                                
                                 <td>{formatEther(costLevels[index])} ETH</td>
+                                <td>{scoreMap[index+1]}</td>
                               </tr>)
                     })}
                 </tbody>        

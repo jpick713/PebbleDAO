@@ -72,33 +72,69 @@ app.get('/user-nfts/:address', async (req, res) => {
 });
 
 app.get('/mint/:address', async (req, res) => {
-  const address = req.params.address;
+  //process query params
+  const address = req.params.address.toLowerCase();
+  const runs = req.query.runs;
+  const start = req.query.start;
+  const imageURI = `ipfs://${req.query.imageuri}`;
+  console.log(`runs: ${runs} and start : ${start} and URI : ${imageURI}`);
+
+  // get info from NFT and DAO smart contract we will need and check start is valid
   const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
+  const startCheck = await NFTInstance.methods.lastTimeStampNFTUsed(address).call();
+  if((startCheck !==0  && startCheck > start) || !(runs>=100 && runs<=500)){
+    res.send({success : false})
+  }
+  const accLevels = await DAOInstance.methods.getAccLevels().call();
+  const rawPenLevels = await DAOInstance.methods.getPenaltyLevels().call();
+  let penLevels = Array(rawPenLevels.length);
+  for(var i=0 ; i<penLevels.length; i++){
+    if(i==0){
+      penLevels[i] = Number(rawPenLevels[i]);
+    }
+    else{
+      penLevels[i] = Number(penLevels[i-1]) + Number(rawPenLevels[i]);
+    }
+  }
+  console.log(penLevels);
+
   const deviceRes = await dataFetch(address, true);
   const deviceIMEI = deviceRes[0].id;
   const deviceAddress = deviceRes[0].address;
-  let recordsData;
+  let recordsData, timestamp;
   const pebbleProtoDef = await protobuf.load("pebble.proto");
   const SensorData = pebbleProtoDef.lookupType('SensorData');
   let decodedRecordsData={};
   let score = 0;
 
-
+  
   if(tokenIds.length == 0){ 
     console.log('no NFTs!');
-    recordsData = await recordsFetch(deviceIMEI,1635275250, 100);
+    recordsData = await recordsFetch(deviceIMEI, start, runs);
     recordsData.map((record, index) =>{
-      if(index < 5){
+      timestamp = record.timestamp;
       const encodedTelemetry = record.raw.replace(/0x/g, '');
       const telemetry = SensorData.decode(Buffer.from(encodedTelemetry,"hex"));
       const accelerometer = telemetry.accelerometer.slice(0,-1);
       const totalAccel = Math.floor(Math.sqrt(Math.pow(accelerometer[0], 2) + Math.pow(accelerometer[1], 2)));
-      console.log(`accelerometer : ${accelerometer} and totalAccel : ${totalAccel}`);
+      let k = accLevels.length -1;
+      let flag = false;
+      while(!flag && k >0){
+        if(totalAccel >= accLevels[k]){
+          flag = true;
+          score += penLevels[k]
+          console.log(`accelerometer : ${accelerometer} and totalAccel : ${totalAccel} and timestamp : ${record.timestamp}`);
+        }
+        k--;
       }
+      
     })
-
   }
-  console.log(`deviceIMEI : ${deviceIMEI} and device address : ${deviceAddress}`);
+
+  else{
+    //when NFTs exist
+  }
+  console.log(`deviceIMEI : ${deviceIMEI} and device address : ${deviceAddress} and score : ${score} and avg : ${Math.round(score*100/runs)/100} and timestamp : ${timestamp}`);
 
   res.send({success : true, IMEI : deviceIMEI });
 })
@@ -110,7 +146,6 @@ app.post('/mint-upload/:address', upload.single('avatar'), async (req, res) => {
   console.log(req.file)
   fs.renameSync(req.file.path, `./uploads/${address}_${tokenIds.length}.png`);
   const urlHash = await uploadImagePinata(`uploads/${address}_${tokenIds.length}.png`);
-  console.log(urlHash.IpfsHash);
   res.send({success : true, imageURL : urlHash.IpfsHash})
 
 })
