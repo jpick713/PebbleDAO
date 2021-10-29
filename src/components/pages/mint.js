@@ -24,6 +24,7 @@ const Mint = function() {
   const [NFTContract, setNFTContract] = useState();
   const [VerifyContract, setVerifyContract] = useState();
   const [DAOContract, setDAOContract] = useState();
+  const [deviceIMEI, setDeviceIMEI] = useState();
 
 
   const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
@@ -35,7 +36,10 @@ const Mint = function() {
       if(active){
         const response = await fetch(`/user-nfts/${account}`);
         const body = await response.json();
-        if(body.start !== 0){
+        const initResponse = await fetch(`/init-device-check/${account}`);
+        const initBody = await initResponse.json();
+        const yearAgo = Math.round(Date.now()/1000) - 12*30*24*3600;
+        if(body.start !== 0 && body.start > yearAgo){
           setStart(body.start);
           setDateTime(dateTimeUnixConverter(Number(body.start) + 60, true));
         }
@@ -43,16 +47,24 @@ const Mint = function() {
           setStart(0);
           setDateTime(dateTimeUnixConverter(Math.round(Date.now()/1000), true));
         }
+        if(initBody.IMEI==""){
+          setDeviceIMEI("");
+        }
+        else{
+          setDeviceIMEI(initBody.IMEI);
+        }
       }
       else{
         setStart(0);
         setDateTime(dateTimeUnixConverter(Math.round(Date.now()/1000), true));
+        setDeviceIMEI("");
       }
       setGlobalAccount(account);
       setGlobalActive(active);
       setGlobalChainId(chainId);
       setFiles([]);
       setFileURL("");
+      
       }
     
       loadUserNFTData()
@@ -97,6 +109,7 @@ const Mint = function() {
           setNFTContract(null);
           setVerifyContract(null);
           setDAOContract(null);
+          setDeviceIMEI("");
           window.alert('contract not deployed to detected network.');
         }
       }
@@ -227,7 +240,7 @@ const Mint = function() {
 
                       <div className="spacer-single"></div>
 
-                      <h5>Data Points (min: 100, max : 500)</h5>
+                      <h5>Data Points (min: 100, max : 500) &emsp;{deviceIMEI !="" && <span>Device IMEI : {deviceIMEI}</span>} </h5>
                       <input type="number" name="item_title" id="item_title" className="form-control" value = {amountRuns} onChange = {(e) => {setAmountRuns(e.target.value)}} />
 
                       <div className="spacer-10"></div>
@@ -236,8 +249,8 @@ const Mint = function() {
                       <input type="datetime-local" name="start_date" id="start_date" className="form-control" value = {dateTime} onChange = {(e) => {setDateTime(e.target.value)}}/>
 
                       <div className="spacer-10"></div>
-
-                      <input type="button" id="submit" className="btn-main" value="Mint Now" onClick={startMint}/>
+                      
+                      {deviceIMEI!=="" ? <input type="button" id="submit" className="btn-main" value="Mint Now" onClick={startMint}/> : <h5>Address has no registered device</h5>}
                   </div>
               </form>
           </div>

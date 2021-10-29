@@ -24,6 +24,7 @@ const upload = multer({dest: 'uploads/'})
 let web3;
 let chainId;
 
+//swap between Kovan and Iotex testnets
 if(testNet=="KOVAN"){
   web3 = new Web3(new Web3.providers.HttpProvider(`https://kovan.infura.io/v3/${projectID}`));
   chainId = 42;
@@ -35,6 +36,7 @@ else{
 
 const port = process.env.SERVER_PORT || 6000;
 
+//instances of all 3 contracts
 const NFTInstance = new web3.eth.Contract(InsuranceNFT.abi, InsuranceNFT.networks[chainId].address);
 const VerifyInstance = new web3.eth.Contract(Verify.abi, Verify.networks[chainId].address);
 const DAOInstance = new web3.eth.Contract(InsuranceDAO.abi, InsuranceDAO.networks[chainId].address);
@@ -51,6 +53,21 @@ app.get('/nft-store/:address', async (req, res) => {
   res.send({success : address, results : object}); 
 });
 
+//initial check called in useEffect to see if address has registered device
+app.get('/init-device-check/:address', async (req, res) => {
+  const address = req.params.address;
+  object = await dataFetch(address.toLowerCase(), true)
+  if (object.length===0){
+    console.log('no devices')
+    return res.send({IMEI : ""})
+  }
+  else{
+    const deviceIMEI = object[0].id;
+    return res.send({IMEI : deviceIMEI})
+  }
+});
+
+//used to render all NFTs for profile
 app.get('/user-nfts/:address', async (req, res) => {
   const address = req.params.address;
   console.log(address);
@@ -71,6 +88,7 @@ app.get('/user-nfts/:address', async (req, res) => {
  
 });
 
+//main mint call
 app.get('/mint/:address', async (req, res) => {
   //process query params
   const address = req.params.address.toLowerCase();
@@ -82,11 +100,15 @@ app.get('/mint/:address', async (req, res) => {
   // get info from NFT and DAO smart contract we will need and check start is valid
   const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
   const startCheck = await NFTInstance.methods.lastTimeStampNFTUsed(address).call();
-  if((startCheck !==0  && startCheck > start) || !(runs>=100 && runs<=500)){
-    res.send({success : false})
+  const yearAgo = Math.round(Date.now()/1000) - 12*30*24*3600;
+  if((startCheck !==0  && startCheck > start && yearAgo < start) || !(runs>=100 && runs<=500)){
+    return res.send({success : false, reason : "invalid runs number or start"})
   }
+
+  //get info needed for calculating score and message later
   const accLevels = await DAOInstance.methods.getAccLevels().call();
   const rawPenLevels = await DAOInstance.methods.getPenaltyLevels().call();
+  const nonce = await VerifyInstance.methods.nonces(address).call();
   let penLevels = Array(rawPenLevels.length);
   for(var i=0 ; i<penLevels.length; i++){
     if(i==0){
@@ -96,49 +118,73 @@ app.get('/mint/:address', async (req, res) => {
       penLevels[i] = Number(penLevels[i-1]) + Number(rawPenLevels[i]);
     }
   }
-  console.log(penLevels);
 
+  //get device IMEI and address and load protobuf helpers
   const deviceRes = await dataFetch(address, true);
   const deviceIMEI = deviceRes[0].id;
   const deviceAddress = deviceRes[0].address;
   let recordsData, timestamp;
   const pebbleProtoDef = await protobuf.load("pebble.proto");
   const SensorData = pebbleProtoDef.lookupType('SensorData');
-  let decodedRecordsData={};
   let score = 0;
 
-  
-  if(tokenIds.length == 0){ 
-    console.log('no NFTs!');
-    recordsData = await recordsFetch(deviceIMEI, start, runs);
-    recordsData.map((record, index) =>{
-      timestamp = record.timestamp;
-      const encodedTelemetry = record.raw.replace(/0x/g, '');
-      const telemetry = SensorData.decode(Buffer.from(encodedTelemetry,"hex"));
-      const accelerometer = telemetry.accelerometer.slice(0,-1);
-      const totalAccel = Math.floor(Math.sqrt(Math.pow(accelerometer[0], 2) + Math.pow(accelerometer[1], 2)));
-      let k = accLevels.length -1;
-      let flag = false;
-      while(!flag && k >0){
-        if(totalAccel >= accLevels[k]){
-          flag = true;
-          score += penLevels[k]
-          console.log(`accelerometer : ${accelerometer} and totalAccel : ${totalAccel} and timestamp : ${record.timestamp}`);
-        }
-        k--;
+  //retrieve records and calculate score
+  recordsData = await recordsFetch(deviceIMEI, start, runs);
+  if(recordsData.length < 100){
+    return res.send({success : false, reason : "not enough records for this"})
+  }
+  recordsData.map((record, index) =>{
+    timestamp = record.timestamp;
+    const encodedTelemetry = record.raw.replace(/0x/g, '');
+    const telemetry = SensorData.decode(Buffer.from(encodedTelemetry,"hex"));
+    const accelerometer = telemetry.accelerometer.slice(0,-1);
+    const totalAccel = Math.floor(Math.sqrt(Math.pow(accelerometer[0], 2) + Math.pow(accelerometer[1], 2)));
+    let k = accLevels.length -1;
+    let flag = false;
+    while(!flag && k >0){
+      if(totalAccel >= accLevels[k]){
+        flag = true;
+        score += penLevels[k]
+        console.log(`accelerometer : ${accelerometer} and totalAccel : ${totalAccel} and timestamp : ${record.timestamp}`);
       }
-      
-    })
+      k--;
+    }
+  })
+  
+  //calculate average, rating
+  const average = Math.round(score*100/runs)/100;
+  let rating = "Pristine";
+  if(average > 7){
+    rating = "Poor"
+  }
+  else if(average > 5){
+    rating = "Fair"
+  }
+  else if(average > 3){
+    rating = "Good"
+  }
+  else if(average > 2){
+    rating = "Great"
   }
 
-  else{
-    //when NFTs exist
-  }
+  //create and upload JSON data for token URI
+  let tokenJSON = {};
+  tokenJSON['name'] = `Pebble DAO NFT #${tokenIds.length +1} for ${address}`;
+  tokenJSON['description'] = "Pebble DAO utilizing verified data from IoTeX Pebble Tracker";
+  tokenJSON['image'] = imageURI;
+  tokenJSON['attributes'] = {'score' : score, 'runs' : runs, 'lastTimeStamp' : timestamp, 'average' : average, 'rating' : rating}
+
+  const tokenFile = await uploadJSONPinata(tokenJSON);
+  const tokenURI = `ipfs://${tokenFile.IpfsHash}`;
+
+  console.log(tokenURI);
+
   console.log(`deviceIMEI : ${deviceIMEI} and device address : ${deviceAddress} and score : ${score} and avg : ${Math.round(score*100/runs)/100} and timestamp : ${timestamp}`);
 
-  res.send({success : true, IMEI : deviceIMEI });
+  res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating});
 })
 
+//route to upload images, called in the beginning of mint function client side
 app.post('/mint-upload/:address', upload.single('avatar'), async (req, res) => {
   const address = req.params.address;
   console.log(address)
@@ -150,7 +196,7 @@ app.post('/mint-upload/:address', upload.single('avatar'), async (req, res) => {
 
 })
 
-
+//graphQL query to fetch devices
 async function dataFetch(Address, owner) {
   const client = new ApolloClient({
       link: new HttpLink({
@@ -182,6 +228,7 @@ async function dataFetch(Address, owner) {
 
 }
 
+//graphQL query to fetch records
 async function recordsFetch(IMEI, start, amount) {
   const client = new ApolloClient({
       link: new HttpLink({
@@ -205,6 +252,7 @@ async function recordsFetch(IMEI, start, amount) {
   return queryResult.data.deviceRecords
 }
 
+//helpers for uploading image and JSON to Pinata through API for image URI and token URI
 async function uploadImagePinata(file){
   //first part handles the pinning from a folder
   
@@ -218,6 +266,21 @@ async function uploadImagePinata(file){
               
   //options.pinataMetadata.keyvalues.description = `This is image ${imageNumber}`;
   const result = await pinata.pinFileToIPFS(readableStreamforFile, options)
+                        .catch((err) => {console.log(err);});
+
+  return result;
+              
+}
+
+async function uploadJSONPinata(obj){
+  //first part handles the pinning from a folder
+  
+  let options = { 
+      pinataOptions: { cidVersion: 0 }
+  };
+
+  
+  const result = await pinata.pinJSONToIPFS(obj, options)
                         .catch((err) => {console.log(err);});
 
   return result;
