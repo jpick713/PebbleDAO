@@ -28,12 +28,12 @@ This app uses verified Pebble Tracker data to mint NFTs for users that will stor
  f) Optional - SERVER_ADDRESS (address that goes with the private key, this must be added to line 6 in migrations/2_deploy_contracts.js!!)<br/>
  g) TEST_NET = KOVAN or IOTEX_TEST (whichever test net you want to use)<br/>
  
- Recommended, just use my deployed instance, 
- `PRIVATE_KEY = 0x23f9c88d251cb85866b605e71b41962e5cd1fdc50f23b495425101953070bb4b` 
+ Recommended, just use my deployed instance<br/> 
+ `PRIVATE_KEY = 0x23f9c88d251cb85866b605e71b41962e5cd1fdc50f23b495425101953070bb4b`<br/>
  (don't worry this was just a randomly generated one from ganache and has no real funds, just used to sign messages server side...)
 
- If you take the hard route and want to deploy yourself, then run 
- ` truffle migrate --network kovan `
- to deploy to kovan or 
- ` truffle migrate --network iotex_test`
+ If you take the hard route and want to deploy yourself, then run<br/>
+ ` truffle migrate --network kovan `<br/>
+ to deploy to kovan or <br/>
+ ` truffle migrate --network iotex_test`<br/>
  to deploy to Iotex test net

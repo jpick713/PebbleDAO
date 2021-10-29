@@ -39,7 +39,7 @@ contract InsuranceNFT is ERC721URIStorage, Ownable{
     }
 
     function mintTokens(string memory _tokenURI, uint256 lastTimeStamp, bytes32 r, bytes32 s, uint8 v) public {  
-        require(verifyContract.metaDataVerify(_msgSender(), _tokenURI, 0, r, s, v), "not verified");
+        require(verifyContract.metaDataVerify(_msgSender(), _tokenURI, 0, lastTimeStamp, r, s, v), "not verified");
         uint256 newItemId;
         _tokenIds.increment();
         newItemId = _tokenIds.current(); 
@@ -56,7 +56,7 @@ contract InsuranceNFT is ERC721URIStorage, Ownable{
     function updateTokenURI(uint _tokenId, string memory _newTokenURI, uint256 lastTimeStamp, bytes32 r, bytes32 s, uint8 v) public {
         require(_msgSender()== ownerOf(_tokenId), "not token owner");
         //call verify(_msgSender(), _tokenURI, tokenId)
-        require(verifyContract.metaDataVerify(_msgSender(), _newTokenURI, _tokenId, r, s, v), "not verified");
+        require(verifyContract.metaDataVerify(_msgSender(), _newTokenURI, _tokenId, lastTimeStamp,r, s, v), "not verified");
         _setTokenURI(_tokenId, _newTokenURI);
         lastBlockNumberUpdate[_msgSender()] = block.number;
         lastTimeStampNFTUsed[_msgSender()] = lastTimeStamp;

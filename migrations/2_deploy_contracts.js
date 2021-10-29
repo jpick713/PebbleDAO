@@ -10,4 +10,5 @@ module.exports = async(deployer, network, accounts) => {
   let deployInsuranceNFT = await deployer.deploy(InsuranceNFT, contractVerify.address, contractDAO.address);
   const contractNFT = await InsuranceNFT.deployed();
   await contractDAO.setNFTContract(contractNFT.address);
+  await contractVerify.setNFTAddress(contractNFT.address);
 };

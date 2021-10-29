@@ -21,23 +21,23 @@ contract Verify is Ownable{
     serverAddresses[_serverAddress] = true;
   }
   
-  function getHash(address _mintAddress, string memory _tokenURI, uint256 _tokenId) internal returns (bytes32) {
-      checkHash = keccak256(abi.encodePacked(nonces[_mintAddress],_mintAddress, address(this), _tokenURI, _tokenId));
-    return keccak256(abi.encodePacked(nonces[_mintAddress],_mintAddress, address(this), _tokenURI, _tokenId));
+  function getHash(address _mintAddress, string memory _tokenURI, uint256 _tokenId, uint256 _timeStamp) internal returns (bytes32) {
+      checkHash = keccak256(abi.encodePacked(nonces[_mintAddress],_mintAddress, address(this), _timeStamp, _tokenURI, _tokenId));
+    return keccak256(abi.encodePacked(nonces[_mintAddress],_mintAddress, address(this), _timeStamp, _tokenURI, _tokenId));
   }
 
-  function metaDataVerify(address _mintAddress, string memory _tokenURI, uint256 _tokenId, bytes32 r, bytes32 s, uint8 v) public returns(bool) {
+  function metaDataVerify(address _mintAddress, string memory _tokenURI, uint256 _tokenId, uint256 timeStamp, bytes32 r, bytes32 s, uint8 v) public returns(bool) {
     require(_msgSender() == NFTAddress, "not called by NFT contract");
-    bytes32 hashRecover = getHash(_mintAddress, _tokenURI, _tokenId);
+    bytes32 hashRecover = getHash(_mintAddress, _tokenURI, _tokenId, timeStamp);
     address signer = ecrecover(hashRecover, v, r, s);
     require( serverAddresses[signer],"SIGNER MUST BE SERVER"); 
     nonces[_msgSender()]++;
     return serverAddresses[signer];
   }
 
-  function driverDataVerify(address ownerAddress, string memory rating, uint256 tokenId, bytes32 r, bytes32 s, uint8 v) public returns(bool){
+  function driverDataVerify(address ownerAddress, string memory rating, uint256 tokenId, uint256 timeStamp, bytes32 r, bytes32 s, uint8 v) public returns(bool){
     require(_msgSender() == DAOAddress, "not called by DAO contract");
-    bytes32 hashRecover = getHash(ownerAddress, rating, tokenId);
+    bytes32 hashRecover = getHash(ownerAddress, rating, tokenId, timeStamp);
     address signer = ecrecover(hashRecover, v, r, s);
     require( serverAddresses[signer],"SIGNER MUST BE SERVER"); 
     nonces[_msgSender()]++;

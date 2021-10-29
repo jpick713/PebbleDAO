@@ -7,7 +7,8 @@ const cors = require('cors');
 require('dotenv').config();
 const Web3 = require('web3');
 const pinataSDK = require('@pinata/sdk');
-const sleep = require('sleep');
+const ethWallet = require('ethereumjs-wallet');
+const { ethers } = require("ethers");
 const fs = require('fs');
 const { ApolloClient, HttpLink, DefaultOptions, InMemoryCache } = require('@apollo/client/core');
 const fetch = require('cross-fetch');
@@ -17,8 +18,8 @@ const pinata = pinataSDK(process.env.PERSONAL_PINATA_PUBLIC_KEY, process.env.PER
 const projectID = process.env.PROJECT_ID;
 const app = express(); 
 const testNet = process.env.TEST_NET;
-const contractAddressKovan = process.env.KOVAN_CONTRACT_ADDRESS;
-const contractAddressIotex = process.env.IOTEX_CONTRACT_ADDRESS;
+const signingKey = process.env.PRIVATE_KEY;
+
 const upload = multer({dest: 'uploads/'})
 
 let web3;
@@ -91,7 +92,7 @@ app.get('/user-nfts/:address', async (req, res) => {
 //main mint call
 app.get('/mint/:address', async (req, res) => {
   //process query params
-  const address = req.params.address.toLowerCase();
+  const address = req.params.address;
   const runs = req.query.runs;
   const start = req.query.start;
   const imageURI = `ipfs://${req.query.imageuri}`;
@@ -120,16 +121,18 @@ app.get('/mint/:address', async (req, res) => {
   }
 
   //get device IMEI and address and load protobuf helpers
-  const deviceRes = await dataFetch(address, true);
+  const deviceRes = await dataFetch(address.toLowerCase(), true);
   const deviceIMEI = deviceRes[0].id;
   const deviceAddress = deviceRes[0].address;
   let recordsData, timestamp;
   const pebbleProtoDef = await protobuf.load("pebble.proto");
   const SensorData = pebbleProtoDef.lookupType('SensorData');
+  const BinPackage = pebbleProtoDef.lookupType('BinPackage');
   let score = 0;
 
   //retrieve records and calculate score
   recordsData = await recordsFetch(deviceIMEI, start, runs);
+
   if(recordsData.length < 100){
     return res.send({success : false, reason : "not enough records for this"})
   }
@@ -181,7 +184,12 @@ app.get('/mint/:address', async (req, res) => {
 
   console.log(`deviceIMEI : ${deviceIMEI} and device address : ${deviceAddress} and score : ${score} and avg : ${Math.round(score*100/runs)/100} and timestamp : ${timestamp}`);
 
-  res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating});
+  const signature = await verifyNFTInfo(nonce, address, Verify.networks[chainId].address, timestamp, tokenURI, 0);
+
+  console.log(`r is ${signature.r} , s is ${signature.s}, v is ${signature.v}`)
+
+
+  res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating, r : signature.r, s : signature.s, v : signature.v});
 })
 
 //route to upload images, called in the beginning of mint function client side
@@ -225,7 +233,6 @@ async function dataFetch(Address, owner) {
   });
 
   return queryResult.data.devices
-
 }
 
 //graphQL query to fetch records
@@ -268,8 +275,7 @@ async function uploadImagePinata(file){
   const result = await pinata.pinFileToIPFS(readableStreamforFile, options)
                         .catch((err) => {console.log(err);});
 
-  return result;
-              
+  return result;             
 }
 
 async function uploadJSONPinata(obj){
@@ -279,10 +285,29 @@ async function uploadJSONPinata(obj){
       pinataOptions: { cidVersion: 0 }
   };
 
-  
   const result = await pinata.pinJSONToIPFS(obj, options)
                         .catch((err) => {console.log(err);});
 
-  return result;
-              
+  return result;            
+}
+
+const verifyNFTInfo = async function(nonce, account, contract, timestamp, URI, tokenId){
+  let wallet = new ethers.Wallet(signingKey);
+
+  const newHashMsg = ethers.utils.solidityKeccak256(["uint256", "address", "address", "uint256", "string", "uint256"], [nonce, account, contract, timestamp, URI, tokenId]);
+
+  const sig = ethersSign(wallet, newHashMsg);
+
+  return sig;
+
+}
+
+//helper to sign a hash iwith a wallet
+const ethersSign = async function (wallet, hash) {
+  let messageHashBytes = ethers.utils.arrayify(hash);
+  let flatSig = await wallet.signMessage(messageHashBytes);
+
+  let sig = ethers.utils.splitSignature(flatSig);
+
+  return sig
 }

@@ -25,6 +25,15 @@ const Mint = function() {
   const [VerifyContract, setVerifyContract] = useState();
   const [DAOContract, setDAOContract] = useState();
   const [deviceIMEI, setDeviceIMEI] = useState();
+  const [score, setScore] = useState(0);
+  const [rating, setRating] = useState("");
+  const [average, setAverage] = useState("");
+  const [pendingTokenURI, setPendingTokenURI] = useState("");
+  const [pendingTimeStamp, setPendingTimeStamp] = useState(0);
+  const [r, setR] = useState("");
+  const [s, setS] = useState("");
+  const [v, setV] = useState(0);
+  const [pendingMint, setPendingMint] = useState(false);
 
 
   const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
@@ -64,6 +73,15 @@ const Mint = function() {
       setGlobalChainId(chainId);
       setFiles([]);
       setFileURL("");
+      setScore(0);
+      setRating("");
+      setAverage("");
+      setPendingTokenURI("");
+      setPendingTimeStamp(0);
+      setR("");
+      setS("");
+      setV(0);
+      setPendingMint(false);
       
       }
     
@@ -110,6 +128,15 @@ const Mint = function() {
           setVerifyContract(null);
           setDAOContract(null);
           setDeviceIMEI("");
+          setScore(0);
+          setRating("");
+          setAverage("");
+          setPendingTokenURI("");
+          setPendingTimeStamp(0);
+          setR("");
+          setS("");
+          setV(0);
+          setPendingMint(false);
           window.alert('contract not deployed to detected network.');
         }
       }
@@ -200,8 +227,40 @@ const Mint = function() {
 
   //call mint function with start, runs, and image URI
   const mintRes = await fetch(`/mint/${account}?runs=${amountRuns}&start=${startMint}&imageuri=${mintImageRes.data.imageURL}`);
-  
+  const mintBody = await mintRes.json();
+  if(mintBody.reason){
+    window.alert(mintBody.reason);
+    return;
+  }
+  else{
+    setScore(mintBody.score);
+    setRating(mintBody.rating);
+    setAverage(mintBody.average);
+    setPendingTokenURI(mintBody.tokenURI);
+    setPendingTimeStamp(mintBody.lastTimeStamp);
+    setR(mintBody.r);
+    setS(mintBody.s);
+    setV(mintBody.v);
+    setPendingMint(true);
+    window.alert(`score is ${mintBody.score}, average is ${mintBody.average}, last time stamp is ${mintBody.lastTimeStamp}, tokenURI is ${mintBody.tokenURI}, rating is ${mintBody.rating}`)
+    return;
+  }
+}
 
+const finishMint = async () => {
+  await NFTContract.methods.mintTokens(pendingTokenURI, pendingTimeStamp, r,s,v).send({from : account})
+  .on('receipt', async function(receipt){
+    window.alert('minted');
+    setScore(0);
+    setRating("");
+    setAverage("");
+    setPendingTokenURI("");
+    setPendingTimeStamp(0);
+    setR("");
+    setS("");
+    setV(0);
+    setPendingMint(false);
+  })
 }
 
     return (
@@ -249,8 +308,12 @@ const Mint = function() {
                       <input type="datetime-local" name="start_date" id="start_date" className="form-control" value = {dateTime} onChange = {(e) => {setDateTime(e.target.value)}}/>
 
                       <div className="spacer-10"></div>
+
+                      {pendingMint && <h5>Score: {score} and rating : {rating}</h5>}
+
+                      <div className="spacer-10"></div>
                       
-                      {deviceIMEI!=="" ? <input type="button" id="submit" className="btn-main" value="Mint Now" onClick={startMint}/> : <h5>Address has no registered device</h5>}
+                      {deviceIMEI!=="" ? <input type="button" id="submit" className="btn-main" value="Get Mint Data" onClick={startMint}/> : <h5>Address has no registered device</h5>} {pendingMint && <span style={{marginLeft : "3em"}}><input type="button" id="submit" className="btn-main" value="Mint Now" onClick={finishMint}/></span>}
                   </div>
               </form>
           </div>
