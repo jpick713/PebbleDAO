@@ -26,21 +26,26 @@ contract Verify is Ownable{
     return keccak256(abi.encodePacked(nonces[_mintAddress],_mintAddress, address(this), _timeStamp, _tokenURI, _tokenId));
   }
 
+  function getDriverHash(address _mintAddress, uint256 level, uint256 _tokenId, uint256 _timeStamp) internal returns (bytes32) {
+      checkHash = keccak256(abi.encodePacked(nonces[_mintAddress],_mintAddress, address(this), _timeStamp, level, _tokenId));
+    return keccak256(abi.encodePacked(nonces[_mintAddress],_mintAddress, address(this), _timeStamp, level, _tokenId));
+  }
+
   function metaDataVerify(address _mintAddress, string memory _tokenURI, uint256 _tokenId, uint256 timeStamp, bytes32 r, bytes32 s, uint8 v) public returns(bool) {
     require(_msgSender() == NFTAddress, "not called by NFT contract");
     bytes32 hashRecover = getHash(_mintAddress, _tokenURI, _tokenId, timeStamp);
-    address signer = ecrecover(hashRecover, v, r, s);
+    address signer = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hashRecover)), v, r, s);
     require( serverAddresses[signer],"SIGNER MUST BE SERVER"); 
-    nonces[_msgSender()]++;
+    nonces[_mintAddress]++;
     return serverAddresses[signer];
   }
 
-  function driverDataVerify(address ownerAddress, string memory rating, uint256 tokenId, uint256 timeStamp, bytes32 r, bytes32 s, uint8 v) public returns(bool){
+  function driverDataVerify(address ownerAddress, uint256 level, uint256 tokenId, uint256 timeStamp, bytes32 r, bytes32 s, uint8 v) public returns(bool){
     require(_msgSender() == DAOAddress, "not called by DAO contract");
-    bytes32 hashRecover = getHash(ownerAddress, rating, tokenId, timeStamp);
-    address signer = ecrecover(hashRecover, v, r, s);
+    bytes32 hashRecover = getDriverHash(ownerAddress, level, tokenId, timeStamp);
+    address signer = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hashRecover)), v, r, s);
     require( serverAddresses[signer],"SIGNER MUST BE SERVER"); 
-    nonces[_msgSender()]++;
+    nonces[ownerAddress]++;
     return serverAddresses[signer];
   }
 

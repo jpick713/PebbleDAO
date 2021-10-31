@@ -14,6 +14,7 @@ const GlobalStyles = createGlobalStyle`
 const Collection= function(props) {
 const [openMenu, setOpenMenu] = React.useState(true);
 const [nftList, setNftList] = useState([]);
+const [metaDataList, setMetaDataList] = useState([]);
 
 const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
 
@@ -24,11 +25,25 @@ useEffect(() => {
   if(active){
     const response = await fetch(`/user-nfts/${account}`);
     const body = await response.json();
-    nftList = body.results;
-    setNftList(body.results);
+    const nftList = body.results;
+    let metaDataList = Array(nftList.length);
+    if(nftList && nftList.length > 0){
+      for (let i = 0; i<nftList.length; i++){
+        const tempMetaData = await fetch(`https://gateway.pinata.cloud/ipfs/${nftList[i].slice(7)}`);
+        const metaDataBody = await tempMetaData.json();
+        metaDataList[i] = {'name' : metaDataBody.name, 'description' : metaDataBody.description, 'image' : metaDataBody.image, 'attributes' : metaDataBody.attributes}
+      }
+      setMetaDataList(metaDataList);
+      setNftList(nftList);
+    }
+    else{
+      setMetaDataList([]);
+      setNftList([]);
+    }
   }
   else{
     setNftList([]);
+    setMetaDataList([]);
   }
   setGlobalAccount(account);
   setGlobalActive(active);
@@ -77,9 +92,9 @@ return (
   </section>
 
   <section className='container no-top'>
-      {openMenu && (  
+      {active && (  
         <div key = {account} id='zero1' className='onStep fadeIn'>
-         <ColumnNewRedux nftList={nftList}/>
+         <ColumnNewRedux key = {account} nftList={nftList} metaDataList = {metaDataList} />
         </div>
       )}  
   </section>

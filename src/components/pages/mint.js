@@ -33,6 +33,8 @@ const Mint = function() {
   const [r, setR] = useState("");
   const [s, setS] = useState("");
   const [v, setV] = useState(0);
+  const [ratingBreaks, setRatingBreaks] = useState([]);
+  const [ratingLabels, setRatingLabels] = useState([]);
   const [pendingMint, setPendingMint] = useState(false);
 
 
@@ -119,9 +121,18 @@ const Mint = function() {
           const penaltyLevels = await DAOContract.methods.getPenaltyLevels().call();
           const accLevels = await DAOContract.methods.getAccLevels().call();
           const costLevels = await DAOContract.methods.getCosts().call();
+          const ratingBreaks = await DAOContract.methods.getRatings().call();
+          let ratingLabels = Array(ratingBreaks.length);
+          const currentDAORound = await DAOContract.methods.getCurrentRound().call();
+          for (let i =0; i< ratingLabels.length; i++){
+            const ratingLabel = await DAOContract.methods.ratingLabels(i+1).call();
+            ratingLabels[i] = ratingLabel;
+          }
           setPenaltyLevels(penaltyLevels);
           setAccLevels(accLevels);
           setCostLevels(costLevels);
+          setRatingBreaks(ratingBreaks);
+          setRatingLabels(ratingLabels);
         }
         else{
           setNFTContract(null);
@@ -205,7 +216,7 @@ const Mint = function() {
         return;
       } 
     }
-    else if (start <= startMint){
+    else if (start > startMint){
       window.alert('choose a start time after timestamp of your last data used in NFTs!');
         return;
     }
@@ -251,6 +262,8 @@ const finishMint = async () => {
   await NFTContract.methods.mintTokens(pendingTokenURI, pendingTimeStamp, r,s,v).send({from : account})
   .on('receipt', async function(receipt){
     window.alert('minted');
+    const newStart = await NFTContract.methods.lastTimeStampNFTUsed(account);
+    setStart(Number(newStart) + 60)
     setScore(0);
     setRating("");
     setAverage("");
@@ -304,7 +317,7 @@ const finishMint = async () => {
 
                       <div className="spacer-10"></div>
 
-                      <h5>Start Date &ensp;(your start must be after {start === 0 ? <span>{displayStart(Math.round(Date.now()/1000) - 12*30*24*3600)}</span> : <span>{displayStart(start)}</span>})</h5>
+                      <h5>Start Date &ensp;(your start must be after {start === 0 ? <span>{displayStart(Math.round(Date.now()/1000) - 12*30*24*3600)}</span> : <span>{displayStart(Number(start))}</span>})</h5>
                       <input type="datetime-local" name="start_date" id="start_date" className="form-control" value = {dateTime} onChange = {(e) => {setDateTime(e.target.value)}}/>
 
                       <div className="spacer-10"></div>
@@ -381,10 +394,22 @@ const finishMint = async () => {
                 </thead>
                 <tbody>
                     {costLevels.map((val, index) => {
+                      let scoreText ="";
+                      if(index==0){
+                        scoreText = `< ${ratingBreaks[1]}`;
+                      }
+                      else if (index == costLevels.length -1){
+                        scoreText = `> ${ratingBreaks[index]}`;
+                      }
+                      else{
+                        scoreText = `${ratingBreaks[index]}-${ratingBreaks[index+1]}`;
+                      }
                       return (<tr style={{backgroundColor: "white", border : "2px solid black"}}>
-                                <td>{ratingMap[index+1]}</td>                                
+                                {/*<td>{ratingMap[index+1]}</td>*/}
+                                <td>{ratingLabels[index]}</td>                              
                                 <td>{formatEther(costLevels[index])} ETH</td>
-                                <td>{scoreMap[index+1]}</td>
+                                <td>{scoreText}</td>
+                                {/*<td>{scoreMap[index+1]}</td>*/}
                               </tr>)
                     })}
                 </tbody>        

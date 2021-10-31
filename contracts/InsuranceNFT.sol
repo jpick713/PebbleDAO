@@ -16,8 +16,6 @@ contract InsuranceNFT is ERC721URIStorage, Ownable{
     address payable internal DAOContract;//DAO contract address
     Verify verifyContract; //address of verifying contract
     
-    uint private whiteListNumber;// number of whiteListed addresses
-    //string public baseURI; //the base URI
     mapping (address => uint) public lastBlockNumberUpdate; // track mint/update of NFTs per address;
     mapping (address => uint) public lastTimeStampNFTUsed; // last timestamp we used for minting NFT
     mapping (address => uint[]) internal tokensByAddress;//track all NFTs owned by a user

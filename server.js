@@ -12,6 +12,7 @@ const { ethers } = require("ethers");
 const fs = require('fs');
 const { ApolloClient, HttpLink, DefaultOptions, InMemoryCache } = require('@apollo/client/core');
 const fetch = require('cross-fetch');
+const axios = require('axios');
 const gql = require('graphql-tag');
 const protobuf = require("protobufjs");
 const pinata = pinataSDK(process.env.PERSONAL_PINATA_PUBLIC_KEY, process.env.PERSONAL_PINATA_SECRET_KEY);
@@ -75,8 +76,9 @@ app.get('/user-nfts/:address', async (req, res) => {
   const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
   const start = await NFTInstance.methods.lastTimeStampNFTUsed(address).call();
   let tokenURIs = [tokenIds.length];
+  let tokenMetaData = [tokenIds.length]
   if(tokenIds.length==0){
-    res.send({success: false, results : [], start : 0})
+    return res.send({success: false, results : [], start : 0})
   }
   else{
     
@@ -84,7 +86,7 @@ app.get('/user-nfts/:address', async (req, res) => {
       tokenURIs[i] =  await NFTInstance.methods.tokenURI(tokenIds[i]).call();
     }
     
-    res.send({success : true, results : tokenURIs, start : start});
+    return res.send({success : true, results : tokenURIs, start : start});
   }
  
 });
@@ -127,7 +129,6 @@ app.get('/mint/:address', async (req, res) => {
   let recordsData, timestamp;
   const pebbleProtoDef = await protobuf.load("pebble.proto");
   const SensorData = pebbleProtoDef.lookupType('SensorData');
-  const BinPackage = pebbleProtoDef.lookupType('BinPackage');
   let score = 0;
 
   //retrieve records and calculate score
@@ -148,7 +149,7 @@ app.get('/mint/:address', async (req, res) => {
       if(totalAccel >= accLevels[k]){
         flag = true;
         score += penLevels[k]
-        console.log(`accelerometer : ${accelerometer} and totalAccel : ${totalAccel} and timestamp : ${record.timestamp}`);
+        //console.log(`accelerometer : ${accelerometer} and totalAccel : ${totalAccel} and timestamp : ${record.timestamp}`);
       }
       k--;
     }
@@ -156,18 +157,21 @@ app.get('/mint/:address', async (req, res) => {
   
   //calculate average, rating
   const average = Math.round(score*100/runs)/100;
-  let rating = "Pristine";
-  if(average > 7){
-    rating = "Poor"
+  const ratingLevels = await DAOInstance.methods.getRatings().call();
+  let ratingLabels = Array(ratingLevels.length);
+  for (let j =0; j<ratingLevels.length; j++){
+    ratingLabels[j] = await DAOInstance.methods.ratingLabels(j + 1).call(); 
   }
-  else if(average > 5){
-    rating = "Fair"
-  }
-  else if(average > 3){
-    rating = "Good"
-  }
-  else if(average > 2){
-    rating = "Great"
+  let rating = ratingLabels[ratingLabels.length-1];
+  let level = ratingLevels.length;
+  let indexLevel = 1
+  while (indexLevel < ratingLevels.length){
+    if(average > ratingLevels[level-indexLevel]){
+      level = indexLevel;
+      rating = ratingLabels[indexLevel];
+      indexLevel = ratingLevels.length;
+    }
+    indexLevel++;
   }
 
   //create and upload JSON data for token URI
@@ -175,18 +179,16 @@ app.get('/mint/:address', async (req, res) => {
   tokenJSON['name'] = `Pebble DAO NFT #${tokenIds.length +1} for ${address}`;
   tokenJSON['description'] = "Pebble DAO utilizing verified data from IoTeX Pebble Tracker";
   tokenJSON['image'] = imageURI;
-  tokenJSON['attributes'] = {'score' : score, 'runs' : runs, 'lastTimeStamp' : timestamp, 'average' : average, 'rating' : rating}
+  tokenJSON['attributes'] = {'score' : score, 'runs' : runs, 'lastTimeStamp' : timestamp, 'average' : average, 'rating' : rating, 'level' : `${level} of ${costs.length}`}
 
   const tokenFile = await uploadJSONPinata(tokenJSON);
   const tokenURI = `ipfs://${tokenFile.IpfsHash}`;
 
-  console.log(tokenURI);
-
-  console.log(`deviceIMEI : ${deviceIMEI} and device address : ${deviceAddress} and score : ${score} and avg : ${Math.round(score*100/runs)/100} and timestamp : ${timestamp}`);
+  console.log(`${nonce} and ${address} and ${Verify.networks[chainId].address} and ${timestamp} and ${tokenURI}`)
 
   const signature = await verifyNFTInfo(nonce, address, Verify.networks[chainId].address, timestamp, tokenURI, 0);
 
-  console.log(`r is ${signature.r} , s is ${signature.s}, v is ${signature.v}`)
+  console.log(`r is ${signature.r}, s is ${signature.s}, v is ${signature.v}`)
 
 
   res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating, r : signature.r, s : signature.s, v : signature.v});
@@ -302,7 +304,7 @@ const verifyNFTInfo = async function(nonce, account, contract, timestamp, URI, t
 
 }
 
-//helper to sign a hash iwith a wallet
+//helper to sign a hash with a wallet
 const ethersSign = async function (wallet, hash) {
   let messageHashBytes = ethers.utils.arrayify(hash);
   let flatSig = await wallet.signMessage(messageHashBytes);
