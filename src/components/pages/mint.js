@@ -176,8 +176,8 @@ const Mint = function() {
   const imageMap = {"0xA072f8Bd3847E21C8EdaAf38D7425631a2A63631" : "author-1", "0x3fd431F425101cCBeB8618A969Ed8AA7DFD115Ca": "author-2", 
     "0x42F9EC8f86B5829123fCB789B1242FacA6E4ef91" : "author-3", "0xa0Bb0815A778542454A26C325a5Ba2301C063b8c" : "author-4"}
 
-  const ratingMap = {"1" : "Pristine", "2" : "Great", "3" : "Good", "4" : "Fair", "5" : "Poor"}
-  const scoreMap = {"1" : "< 2", "2" : "2-3", "3" : "3-5", "4" : "5-7", "5" : "> 7"}
+  /*const ratingMap = {"1" : "Pristine", "2" : "Great", "3" : "Good", "4" : "Fair", "5" : "Poor"}
+  const scoreMap = {"1" : "< 2", "2" : "2-3", "3" : "3-5", "4" : "5-7", "5" : "> 7"}*/
 
   function dateTimeUnixConverter(time, unixTime){
     if(unixTime){
@@ -201,6 +201,7 @@ const Mint = function() {
   }
 
   const startMint = async () => {
+    //checks to see if able to mint
     if(!active){
       window.alert("connect with wallet");
       return;
@@ -229,16 +230,19 @@ const Mint = function() {
       window.alert('number of data points from pebble tracker must be between 100 and 500');
       return;
     }
+
+    //adding file that was uploaded with name avatar (name doesn't really matter)
     const formData = new FormData();
     formData.append('avatar', file);
-
+    
+    //use axios to post image with multer and upload to pinata
     const mintImageRes = await axios.post(`/mint-upload/${account}`, formData, {
     headers: {
       'Content-type': 'multipart/form-data'
     }
   });
 
-  //alert uploaded to pinata
+  //set URI of uploaded image from pinata
   setCurrentImageURI(mintImageRes.data.imageURL);
 
   //call mint function with start, runs, and image URI
@@ -263,6 +267,7 @@ const Mint = function() {
   }
 }
 
+//after all the calculations for score and rating and getting a token URI, proceed to mint NFT if user desires
 const finishMint = async () => {
   await NFTContract.methods.mintTokens(pendingTokenURI, pendingTimeStamp, r,s,v).send({from : account})
   .on('receipt', async function(receipt){
