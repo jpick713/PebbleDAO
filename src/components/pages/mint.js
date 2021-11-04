@@ -35,6 +35,8 @@ const Mint = function() {
   const [v, setV] = useState(0);
   const [ratingBreaks, setRatingBreaks] = useState([]);
   const [ratingLabels, setRatingLabels] = useState([]);
+  const [daoJoin, setDAOJoin] = useState(false);
+  const [daoUpdate, setDAOUpdate] = useState(false);
   const [pendingMint, setPendingMint] = useState(false);
 
 
@@ -128,6 +130,9 @@ const Mint = function() {
             const ratingLabel = await DAOContract.methods.ratingLabels(i+1).call();
             ratingLabels[i] = ratingLabel;
           }
+          const ownedNFTs = await NFTContract.methods.getTokensByAddr(account).call();
+          const currentDAOToken = await DAOContract.methods.currentTokenIdForAddr(currentDAORound, account).call();
+          const isInDAO = (currentDAOToken > 0);
           setPenaltyLevels(penaltyLevels);
           setAccLevels(accLevels);
           setCostLevels(costLevels);
