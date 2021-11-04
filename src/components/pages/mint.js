@@ -39,7 +39,6 @@ const Mint = function() {
   const [daoUpdate, setDAOUpdate] = useState(false);
   const [pendingMint, setPendingMint] = useState(false);
 
-
   const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
 
   const {globalAccount, setGlobalAccount, globalActive, setGlobalActive , globalChainId, setGlobalChainId} = useContext(AccountContext);
@@ -86,7 +85,6 @@ const Mint = function() {
       setS("");
       setV(0);
       setPendingMint(false);
-      
       }
     
       loadUserNFTData()
@@ -133,6 +131,18 @@ const Mint = function() {
           const ownedNFTs = await NFTContract.methods.getTokensByAddr(account).call();
           const currentDAOToken = await DAOContract.methods.currentTokenIdForAddr(currentDAORound, account).call();
           const isInDAO = (currentDAOToken > 0);
+          const lastNFTTime = await NFTContract.methods.lastTimeStampNFTUsed(account).call();
+          const yearAgo = Math.round(Date.now()/1000) - 12*30*24*3600;
+          if(!isInDAO && lastNFTTime > yearAgo){
+            setDAOJoin(true);
+            setDAOUpdate(false);
+          }
+          const roundPayouts = await DAOConctract.methods.roundPayouts(currentDAORound, account).call();
+
+          if(isInDAO && ownedNFTs[-1] != currentDAOToken){
+            setDAOJoin(false);
+            //get level from token URI and then update
+          }
           setPenaltyLevels(penaltyLevels);
           setAccLevels(accLevels);
           setCostLevels(costLevels);

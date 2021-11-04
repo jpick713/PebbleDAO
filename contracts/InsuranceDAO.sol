@@ -18,7 +18,7 @@ contract InsuranceDAO is Ownable{
     uint public totalLevels; //current payout levels total
     uint256[] internal penaltyLevels; //penalty and acceleration levels
     uint256[] internal accLevels; //levels acceleration where penalites occur
-    mapping (uint => mapping (address => uint)) public roundPayouts; //deposit minus any payouts in current round
+    mapping (uint => mapping (address => uint)) public roundPayouts; //payouts in current round
     mapping (uint => mapping (address => uint)) public levelsEntered;//level of each driver originally for cost
     mapping (uint => mapping (address => uint)) public paymentLevels;//level of each driver for payments
     mapping (uint => string) public ratingLabels; //Labels for each level
