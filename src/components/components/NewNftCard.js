@@ -29,17 +29,17 @@ const NewNftCard = ({ nft, className = 'd-item col-lg-3 col-md-6 col-sm-6 col-xs
                 <div className="nft__item_wrap" style={{height: `${height}px`}}>
                 <Outer>
                     <span>
-                        <img key = {metaData} onLoad={onImgLoad} src={`https://gateway.pinata.cloud/ipfs/${metaData.image.slice(7)}`} className="lazy nft__item_preview" alt=""/>
+                        <img key = {metaData} onLoad={onImgLoad} src={"image" in metaData ? `https://gateway.pinata.cloud/ipfs/${metaData.image.slice(7)}` : ""} className="lazy nft__item_preview" alt=""/>
                     </span>
                 </Outer>
                 </div>
                 
                 <div className="nft__item_info">
                     <span>
-                        <h4>{`${metaData.name.slice(0,-34)}...${metaData.name.slice(-4)}`}</h4>
+                        <h4>{"name" in metaData ? `${metaData.name.slice(0,-34)}...${metaData.name.slice(-4)}` : ""}</h4>
                     </span>
                     <div className="nft__item_price">
-                        <span>Score: {metaData.attributes.score}</span><span>Rating: {metaData.attributes.rating}</span><span>Avg: {metaData.attributes.average}</span>
+                        <span>Score: {"score" in metaData ?  metaData.attributes.score : ""}</span><span>Rating: {"rating" in metaData ? metaData.attributes.rating : ""}</span><span>Avg: {"average" in metaData ? metaData.attributes.average : ""}</span>
                     </div>
                     
                     <div className="nft__item_like" style={{paddingTop: "0.75em"}}>
