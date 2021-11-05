@@ -37,6 +37,8 @@ const Mint = function() {
   const [ratingLabels, setRatingLabels] = useState([]);
   const [daoJoin, setDAOJoin] = useState(false);
   const [daoUpdate, setDAOUpdate] = useState(false);
+  const [daoRating, setDAORating] = useState("");
+  const [daoLevel, setDAOLevel] = useState(0);
   const [pendingMint, setPendingMint] = useState(false);
 
   const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
@@ -129,6 +131,13 @@ const Mint = function() {
             ratingLabels[i] = ratingLabel;
           }
           const ownedNFTs = await NFTContract.methods.getTokensByAddr(account).call();
+          let lastTokenURI, lastMetaData, lastMetaDataBody;
+          if (ownedNFTs.length > 0){
+            lastTokenURI = await NFTContract.methods.tokenURI(ownedNFTs[-1]).call();
+            lastMetaData = await fetch(`https://gateway.pinata.cloud/ipfs/${lastTokenURI.slice(7)}`);
+            lastMetaDataBody = await lastMetaData.json();
+            //get last tokenURI info like level and rating and score et al
+          }
           const currentDAOToken = await DAOContract.methods.currentTokenIdForAddr(currentDAORound, account).call();
           const isInDAO = (currentDAOToken > 0);
           const lastNFTTime = await NFTContract.methods.lastTimeStampNFTUsed(account).call();
@@ -136,11 +145,17 @@ const Mint = function() {
           if(!isInDAO && lastNFTTime > yearAgo){
             setDAOJoin(true);
             setDAOUpdate(false);
+            setDAOLevel(lastMetaDataBody.attributes.level);
+            setDAORating(lastMetaDataBody.attributes.rating);
           }
-          const roundPayouts = await DAOConctract.methods.roundPayouts(currentDAORound, account).call();
+          const roundPayouts = await DAOContract.methods.roundPayouts(currentDAORound, account).call();
+          const levelEntered = await DAOContract.methods.levelsEntered(currentDAORound, account).call();
 
-          if(isInDAO && ownedNFTs[-1] != currentDAOToken){
+          if(isInDAO && ownedNFTs[-1] != currentDAOToken && roundPayouts == 0 && levelEntered > lastMetaDataBody.attributes.level){
             setDAOJoin(false);
+            setDAOUpdate(true);
+            setDAOLevel(lastMetaDataBody.attributes.level);
+            setDAORating(lastMetaDataBody.attributes.rating);
             //get level from token URI and then update
           }
           setPenaltyLevels(penaltyLevels);
@@ -163,6 +178,10 @@ const Mint = function() {
           setS("");
           setV(0);
           setPendingMint(false);
+          setDAOJoin(false);
+          setDAOUpdate(false);
+          setDAOLevel(0);
+          setDAORating("");
           window.alert('contract not deployed to detected network.');
         }
       }
