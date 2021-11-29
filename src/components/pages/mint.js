@@ -37,6 +37,7 @@ const Mint = function() {
   const [ratingLabels, setRatingLabels] = useState([]);
   const [daoJoin, setDAOJoin] = useState(false);
   const [daoUpdate, setDAOUpdate] = useState(false);
+  const [daoShow, setDAOShow] = useState(false);
   const [daoRating, setDAORating] = useState("");
   const [daoLevel, setDAOLevel] = useState(0);
   const [pendingMint, setPendingMint] = useState(false);
@@ -133,7 +134,7 @@ const Mint = function() {
           const ownedNFTs = await NFTContract.methods.getTokensByAddr(account).call();
           let lastTokenURI, lastMetaData, lastMetaDataBody;
           if (ownedNFTs.length > 0){
-            lastTokenURI = await NFTContract.methods.tokenURI(ownedNFTs[-1]).call();
+            lastTokenURI = await NFTContract.methods.tokenURI(ownedNFTs[ownedNFTs.length-1]).call();
             lastMetaData = await fetch(`https://gateway.pinata.cloud/ipfs/${lastTokenURI.slice(7)}`);
             lastMetaDataBody = await lastMetaData.json();
             //get last tokenURI info like level and rating and score et al
@@ -143,18 +144,21 @@ const Mint = function() {
           const lastNFTTime = await NFTContract.methods.lastTimeStampNFTUsed(account).call();
           const yearAgo = Math.round(Date.now()/1000) - 12*30*24*3600;
           if(!isInDAO && lastNFTTime > yearAgo){
+            
             setDAOJoin(true);
             setDAOUpdate(false);
-            setDAOLevel(lastMetaDataBody.attributes.level);
+            setDAOShow(true);
+            setDAOLevel(lastMetaDataBody.attributes.level.split(" ")[0]);
             setDAORating(lastMetaDataBody.attributes.rating);
           }
           const roundPayouts = await DAOContract.methods.roundPayouts(currentDAORound, account).call();
           const levelEntered = await DAOContract.methods.levelsEntered(currentDAORound, account).call();
 
-          if(isInDAO && ownedNFTs[-1] != currentDAOToken && roundPayouts == 0 && levelEntered > lastMetaDataBody.attributes.level){
+          if(isInDAO && ownedNFTs[-1] != currentDAOToken && roundPayouts == 0 && levelEntered > Number(lastMetaDataBody.attributes.level.split(" ")[0])){
             setDAOJoin(false);
             setDAOUpdate(true);
-            setDAOLevel(lastMetaDataBody.attributes.level);
+            setDAOShow(true);
+            setDAOLevel(lastMetaDataBody.attributes.level.split(" ")[0]);
             setDAORating(lastMetaDataBody.attributes.rating);
             //get level from token URI and then update
           }
@@ -180,6 +184,7 @@ const Mint = function() {
           setPendingMint(false);
           setDAOJoin(false);
           setDAOUpdate(false);
+          setDAOShow(false);
           setDAOLevel(0);
           setDAORating("");
           window.alert('contract not deployed to detected network.');
@@ -302,6 +307,7 @@ const finishMint = async () => {
   .on('receipt', async function(receipt){
     window.alert('minted');
     const newStart = await NFTContract.methods.lastTimeStampNFTUsed(account);
+    window.alert(newStart);
     setStart(Number(newStart) + 60)
     setScore(0);
     setRating("");
@@ -313,6 +319,10 @@ const finishMint = async () => {
     setV(0);
     setPendingMint(false);
   })
+}
+
+const joinUpdateDao = async () => {
+  //if in dao join method else update method
 }
 
     return (
@@ -366,6 +376,7 @@ const finishMint = async () => {
                       <div className="spacer-10"></div>
                       
                       {deviceIMEI!=="" ? <input type="button" id="submit" className="btn-main" value="Get Mint Data" onClick={startMint}/> : <h5>Address has no registered device</h5>} {pendingMint && <span style={{marginLeft : "3em"}}><input type="button" id="submit" className="btn-main" value="Mint Now" onClick={finishMint}/></span>}
+                      {daoShow && <span style={{marginLeft : "3em"}}><input type="button" id="submit" className="btn-main" value="Join/Update Dao" onClick={joinUpdateDao}/> &ensp; Rating: {daoRating} &ensp; Level: {daoLevel}</span>}
                   </div>
               </form>
           </div>

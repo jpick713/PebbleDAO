@@ -36,7 +36,7 @@ const NewNftCard = ({ nft, className = 'd-item col-lg-3 col-md-6 col-sm-6 col-xs
                 
                 <div className="nft__item_info">
                     <span>
-                        <h4>{metaData ? `${metaData.name.slice(0,-34)}...${metaData.name.slice(-4)}` : ""}</h4>
+                        <a href={nft ? `https://gateway.pinata.cloud/ipfs/${nft.slice(7)}`: ""} target= "_blank"><h4>{metaData ? `${metaData.name.slice(0,-34)}...${metaData.name.slice(-4)}` : ""}</h4></a>
                     </span>
                     <div className="nft__item_price">
                         <span>Score: {metaData ?  metaData.attributes.score : ""}</span><span>Rating: {metaData ? metaData.attributes.rating : ""}</span><span>Avg: {metaData ? metaData.attributes.average : ""}</span>

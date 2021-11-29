@@ -161,12 +161,13 @@ app.get('/mint/:address', async (req, res) => {
            while(index < 400 && timestamps[index]< start){
                index++;
            }
-           console.log(index);
-           if(index+runs >= 400){
+           console.log(`index is ${index} and runs is ${runs}`);
+           if(index + Number(runs) >= 400){
+             console.log('in here')
             return res.send({success : false, reason : "not enough records for this"})
            }
            else {
-             timestamp = timestamps[index+runs-1];
+             timestamp = timestamps[index + Number(runs)-1];
              recordsData = dataObj[deviceIMEI].slice(index, index+runs);
             }
             recordsData.map((record, index) =>{
@@ -187,16 +188,23 @@ app.get('/mint/:address', async (req, res) => {
             for (let j =0; j<ratingLevels.length; j++){
               ratingLabels[j] = await DAOInstance.methods.ratingLabels(j + 1).call(); 
             }
+            console.log(ratingLabels);
+            console.log(ratingLevels);
             let rating = ratingLabels[ratingLabels.length-1];
             let level = ratingLevels.length;
-            let indexLevel = 1
+            let indexLevel = 1;
+            let setLevel = false;
             while (indexLevel < ratingLevels.length){
               if(average > ratingLevels[level-indexLevel]){
                 level = indexLevel;
-                rating = ratingLabels[level - indexLevel+1];
+                rating = ratingLabels[ratingLevels.length - indexLevel];
                 indexLevel = ratingLevels.length;
+                setLevel = true;
               }
               indexLevel++;
+            }
+            if(!setLevel){
+              rating = ratingLabels[0];
             }
 
             //create and upload JSON data for token URI
