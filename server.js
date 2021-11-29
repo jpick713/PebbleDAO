@@ -25,7 +25,7 @@ const upload = multer({dest: 'uploads/'})
 
 let web3;
 let chainId;
-
+let useLocalData = true;
 //swap between Kovan and Iotex testnets
 if(testNet=="KOVAN"){
   web3 = new Web3(new Web3.providers.HttpProvider(`https://kovan.infura.io/v3/${projectID}`));
@@ -58,14 +58,27 @@ app.get('/nft-store/:address', async (req, res) => {
 //initial check called in useEffect to see if address has registered device
 app.get('/init-device-check/:address', async (req, res) => {
   const address = req.params.address;
-  object = await dataFetch(address.toLowerCase(), true)
-  if (object.length===0){
-    console.log('no devices')
-    return res.send({IMEI : ""})
+  if(useLocalData){
+    let deviceExist = address in addressIMEI;
+    if (!deviceExist){
+      console.log('no devices')
+      return res.send({IMEI : ""})
+    }
+    else{
+      const deviceIMEI = addressIMEI[address];
+      return res.send({IMEI : deviceIMEI})
+    }
   }
   else{
-    const deviceIMEI = object[0].id;
-    return res.send({IMEI : deviceIMEI})
+    object = await dataFetch(address.toLowerCase(), true)
+    if (object.length===0){
+      console.log('no devices')
+      return res.send({IMEI : ""})
+    }
+    else{
+      const deviceIMEI = object[0].id;
+      return res.send({IMEI : deviceIMEI})
+    }
   }
 });
 
@@ -111,6 +124,7 @@ app.get('/mint/:address', async (req, res) => {
   //get info needed for calculating score and message later
   const accLevels = await DAOInstance.methods.getAccLevels().call();
   const rawPenLevels = await DAOInstance.methods.getPenaltyLevels().call();
+  const costs = await DAOInstance.methods.getCosts().call();
   const nonce = await VerifyInstance.methods.nonces(address).call();
   let penLevels = Array(rawPenLevels.length);
   for(var i=0 ; i<penLevels.length; i++){
@@ -122,38 +136,124 @@ app.get('/mint/:address', async (req, res) => {
     }
   }
 
-  //get device IMEI and address and load protobuf helpers
-  const deviceRes = await dataFetch(address.toLowerCase(), true);
-  const deviceIMEI = deviceRes[0].id;
-  const deviceAddress = deviceRes[0].address;
   let recordsData, timestamp;
-  const pebbleProtoDef = await protobuf.load("pebble.proto");
-  const SensorData = pebbleProtoDef.lookupType('SensorData');
   let score = 0;
+  let index =0;
 
-  //retrieve records and calculate score
-  recordsData = await recordsFetch(deviceIMEI, start, runs);
-
-  if(recordsData.length < 100){
-    return res.send({success : false, reason : "not enough records for this"})
-  }
-  recordsData.map((record, index) =>{
-    timestamp = record.timestamp;
-    const encodedTelemetry = record.raw.replace(/0x/g, '');
-    const telemetry = SensorData.decode(Buffer.from(encodedTelemetry,"hex"));
-    const accelerometer = telemetry.accelerometer.slice(0,-1);
-    const totalAccel = Math.floor(Math.sqrt(Math.pow(accelerometer[0], 2) + Math.pow(accelerometer[1], 2)));
-    let k = accLevels.length -1;
-    let flag = false;
-    while(!flag && k >0){
-      if(totalAccel >= accLevels[k]){
-        flag = true;
-        score += penLevels[k]
-        //console.log(`accelerometer : ${accelerometer} and totalAccel : ${totalAccel} and timestamp : ${record.timestamp}`);
-      }
-      k--;
+  if(useLocalData){
+    let deviceExist = address in addressIMEI;
+    if (!deviceExist){
+      return res.send({success : false, reason : "not enough records for this"})
     }
-  })
+    else{
+      const deviceIMEI = addressIMEI[address];
+      fs.readFile('./backupData.json', 'utf8', async (err, data) => {
+
+        if (err) {
+            console.log(`Error reading file from disk: ${err}`);
+            return res.send({success : false, reason : "error reading json data"})
+        } else {
+    
+            // parse JSON string to JSON object
+            const dataObj = JSON.parse(data);
+    
+           const timestamps = dataObj['timestamps'];
+           while(index < 400 && timestamps[index]< start){
+               index++;
+           }
+           console.log(index);
+           if(index+runs >= 400){
+            return res.send({success : false, reason : "not enough records for this"})
+           }
+           else {
+             timestamp = timestamps[index+runs-1];
+             recordsData = dataObj[deviceIMEI].slice(index, index+runs);
+            }
+            recordsData.map((record, index) =>{
+              let k = accLevels.length -1;
+              let flag = false;
+              while(!flag && k >0){
+                if(record >= accLevels[k]){
+                  flag = true;
+                  score += penLevels[k]
+                }
+                k--;
+              }
+            })
+
+            const average = Math.round(score*100/runs)/100;
+            const ratingLevels = await DAOInstance.methods.getRatings().call();
+            let ratingLabels = Array(ratingLevels.length);
+            for (let j =0; j<ratingLevels.length; j++){
+              ratingLabels[j] = await DAOInstance.methods.ratingLabels(j + 1).call(); 
+            }
+            let rating = ratingLabels[ratingLabels.length-1];
+            let level = ratingLevels.length;
+            let indexLevel = 1
+            while (indexLevel < ratingLevels.length){
+              if(average > ratingLevels[level-indexLevel]){
+                level = indexLevel;
+                rating = ratingLabels[level - indexLevel+1];
+                indexLevel = ratingLevels.length;
+              }
+              indexLevel++;
+            }
+
+            //create and upload JSON data for token URI
+            let tokenJSON = {};
+            tokenJSON['name'] = `Pebble DAO NFT #${tokenIds.length +1} for ${address}`;
+            tokenJSON['description'] = "Pebble DAO utilizing verified data from IoTeX Pebble Tracker";
+            tokenJSON['image'] = imageURI;
+            tokenJSON['attributes'] = {'score' : score, 'runs' : runs, 'lastTimeStamp' : timestamp, 'average' : average, 'rating' : rating, 'level' : `${level} of ${costs.length}`}
+
+            const tokenFile = await uploadJSONPinata(tokenJSON);
+            const tokenURI = `ipfs://${tokenFile.IpfsHash}`;
+
+            console.log(`${nonce} and ${address} and ${Verify.networks[chainId].address} and ${timestamp} and ${tokenURI}`)
+
+            const signature = await verifyNFTInfo(nonce, address, Verify.networks[chainId].address, timestamp, tokenURI, 0);
+
+            console.log(`r is ${signature.r}, s is ${signature.s}, v is ${signature.v}`)
+
+
+            res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating, r : signature.r, s : signature.s, v : signature.v});
+            
+        }
+    
+    });
+    }
+  }
+  else{
+    //get device IMEI and address and load protobuf helpers
+    const deviceRes = await dataFetch(address.toLowerCase(), true);
+    const deviceIMEI = deviceRes[0].id;
+    const deviceAddress = deviceRes[0].address;
+    const pebbleProtoDef = await protobuf.load("pebble.proto");
+    const SensorData = pebbleProtoDef.lookupType('SensorData');
+    
+    //retrieve records and calculate score
+    recordsData = await recordsFetch(deviceIMEI, start, runs);
+
+    if(recordsData.length < 100){
+      return res.send({success : false, reason : "not enough records for this"})
+    }
+    recordsData.map((record, index) =>{
+      timestamp = record.timestamp;
+      const encodedTelemetry = record.raw.replace(/0x/g, '');
+      const telemetry = SensorData.decode(Buffer.from(encodedTelemetry,"hex"));
+      const accelerometer = telemetry.accelerometer.slice(0,-1);
+      const totalAccel = Math.floor(Math.sqrt(Math.pow(accelerometer[0], 2) + Math.pow(accelerometer[1], 2)));
+      let k = accLevels.length -1;
+      let flag = false;
+      while(!flag && k >0){
+        if(totalAccel >= accLevels[k]){
+          flag = true;
+          score += penLevels[k]
+          //console.log(`accelerometer : ${accelerometer} and totalAccel : ${totalAccel} and timestamp : ${record.timestamp}`);
+        }
+        k--;
+      }
+    })
   
   //calculate average, rating
   const average = Math.round(score*100/runs)/100;
@@ -192,6 +292,7 @@ app.get('/mint/:address', async (req, res) => {
 
 
   res.send({success : true, score : score, average : average, lastTimeStamp : timestamp, tokenURI : tokenURI, rating : rating, r : signature.r, s : signature.s, v : signature.v});
+  }
 })
 
 //route to upload images, called in the beginning of mint function client side
@@ -312,4 +413,12 @@ const ethersSign = async function (wallet, hash) {
   let sig = ethers.utils.splitSignature(flatSig);
 
   return sig
+}
+
+//Local Data in case TruStream is having issues
+const addressIMEI = {
+  "0xA072f8Bd3847E21C8EdaAf38D7425631a2A63631" : "100000000000019",
+  "0x3fd431F425101cCBeB8618A969Ed8AA7DFD115Ca" : "100000000000023",
+  "0x42F9EC8f86B5829123fCB789B1242FacA6E4ef91" : "100000000000024",
+  "0xa0Bb0815A778542454A26C325a5Ba2301C063b8c" : "100000000000025"
 }
