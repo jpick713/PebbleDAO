@@ -143,6 +143,8 @@ const Mint = function() {
           const isInDAO = (currentDAOToken > 0);
           const lastNFTTime = await NFTContract.methods.lastTimeStampNFTUsed(account).call();
           const yearAgo = Math.round(Date.now()/1000) - 12*30*24*3600;
+          const roundPayouts = await DAOContract.methods.roundPayouts(currentDAORound, account).call();
+          const levelEntered = await DAOContract.methods.levelsEntered(currentDAORound, account).call();
           if(!isInDAO && lastNFTTime > yearAgo){
             
             setDAOJoin(true);
@@ -151,16 +153,21 @@ const Mint = function() {
             setDAOLevel(lastMetaDataBody.attributes.level.split(" ")[0]);
             setDAORating(lastMetaDataBody.attributes.rating);
           }
-          const roundPayouts = await DAOContract.methods.roundPayouts(currentDAORound, account).call();
-          const levelEntered = await DAOContract.methods.levelsEntered(currentDAORound, account).call();
 
-          if(isInDAO && ownedNFTs[-1] != currentDAOToken && roundPayouts == 0 && levelEntered > Number(lastMetaDataBody.attributes.level.split(" ")[0])){
+          else if(isInDAO && ownedNFTs[-1] != currentDAOToken && roundPayouts == 0 && levelEntered > Number(lastMetaDataBody.attributes.level.split(" ")[0])){
             setDAOJoin(false);
             setDAOUpdate(true);
             setDAOShow(true);
             setDAOLevel(lastMetaDataBody.attributes.level.split(" ")[0]);
             setDAORating(lastMetaDataBody.attributes.rating);
             //get level from token URI and then update
+          }
+          else{
+            setDAOJoin(false);
+            setDAOUpdate(false);
+            setDAOShow(false);
+            setDAOLevel(lastMetaDataBody.attributes.level.split(" ")[0]);
+            setDAORating(lastMetaDataBody.attributes.rating);
           }
           setPenaltyLevels(penaltyLevels);
           setAccLevels(accLevels);
@@ -306,9 +313,27 @@ const finishMint = async () => {
   await NFTContract.methods.mintTokens(pendingTokenURI, pendingTimeStamp, r,s,v).send({from : account})
   .on('receipt', async function(receipt){
     window.alert('minted');
-    const newStart = await NFTContract.methods.lastTimeStampNFTUsed(account);
-    window.alert(newStart);
-    setStart(Number(newStart) + 60)
+    const newStart = await NFTContract.methods.lastTimeStampNFTUsed(account).call();
+    const currentDAORound = await DAOContract.methods.getCurrentRound().call();
+    const currentDAOToken = await DAOContract.methods.currentTokenIdForAddr(currentDAORound, account).call();
+    const isInDAO = (currentDAOToken > 0);
+    const lastMetaData = await fetch(`https://gateway.pinata.cloud/ipfs/${pendingTokenURI.slice(7)}`);
+    const lastMetaDataBody = await lastMetaData.json();
+    if(!isInDAO){
+      setDAOJoin(true);
+      setDAOUpdate(false);
+      setDAOShow(true);
+      setDAOLevel(lastMetaDataBody.attributes.level.split(" ")[0]);
+      setDAORating(lastMetaDataBody.attributes.rating);
+    }
+    else{
+      setDAOJoin(false);
+      setDAOUpdate(true);
+      setDAOShow(true);
+      setDAOLevel(lastMetaDataBody.attributes.level.split(" ")[0]);
+      setDAORating(lastMetaDataBody.attributes.rating);
+    }
+    setStart(Number(newStart) + 60);
     setScore(0);
     setRating("");
     setAverage("");
@@ -322,7 +347,42 @@ const finishMint = async () => {
 }
 
 const joinUpdateDao = async () => {
-  //if in dao join method else update method
+  if(daoJoin || daoUpdate){
+    const lastMetaData = await fetch(`dao-join-update/${account}`);
+    const lastMetaDataBody = await lastMetaData.json();
+    if (lastMetaDataBody.reason){
+      window.alert(lastMetaDataBody.reason);
+      return;
+    }
+    const level = lastMetaDataBody.level;
+    const tokenId = lastMetaDataBody.tokenId;
+    const timeStamp = lastMetaDataBody.timeStamp;
+    const r = lastMetaDataBody.r;
+    const s = lastMetaDataBody.s;
+    const v = lastMetaDataBody.v;
+    let value = 0;
+    if(daoJoin){
+      const costs = await DAOContract.methods.getCosts().call();
+      value = costs[level-1];
+    }
+    
+    await DAOContract.methods.addToDao(level, tokenId, timeStamp, r,s,v).send({from : account, value : value})
+  .on('receipt', async function(receipt){
+    setDAOJoin(false);
+    setDAOUpdate(false);
+    setDAOShow(false);
+    setDAOLevel(0);
+    setDAORating("");
+    })
+  }
+  else{
+  setDAOJoin(false);
+  setDAOUpdate(false);
+  setDAOShow(false);
+  setDAOLevel(0);
+  setDAORating("");
+  return;
+  }
 }
 
     return (

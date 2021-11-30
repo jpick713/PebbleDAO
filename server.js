@@ -104,6 +104,28 @@ app.get('/user-nfts/:address', async (req, res) => {
  
 });
 
+//used to render all NFTs for all Dao holdings
+app.get('/dao-nfts/:address', async (req, res) => {
+  const address = req.params.address;
+  console.log(address);
+  const round = await DAOInstance.methods.getCurrentRound().call();
+  const members = await DAOInstance.methods.getDAOMembers(round).call();
+  console.log(round)
+  let tokenURIs = [members.length];
+  let currentTokenId;
+  if(members.length==0){
+    return res.send({success: false, results : [], members : []})
+  }
+  else{
+    for (var i =0; i<members.length; i++){
+      currentTokenId = await DAOInstance.methods.currentTokenIdForAddr(round, members[i]).call();
+      console.log(currentTokenId)
+      tokenURIs[i] =  await NFTInstance.methods.tokenURI(currentTokenId).call();
+    }
+    return res.send({success : true, results : tokenURIs, members : members});
+  }
+});
+
 //main mint call
 app.get('/mint/:address', async (req, res) => {
   //process query params
@@ -315,6 +337,33 @@ app.post('/mint-upload/:address', upload.single('avatar'), async (req, res) => {
 
 })
 
+//dao join/update call
+app.get('/dao-join-update/:address', async (req, res) => {
+  const address = req.params.address;
+  console.log(address)
+  const tokenIds = await NFTInstance.methods.getTokensByAddr(address).call();
+  if(tokenIds.length==0){
+    return res.send({success : false, reason : "address has no minted tokens"})
+  }
+  const currentDAORound = await DAOInstance.methods.getCurrentRound().call();
+  const currentDAOToken = await DAOInstance.methods.currentTokenIdForAddr(currentDAORound, address).call();
+  if(currentDAOToken > 0 && currentDAOToken == tokenIds[tokenIds.length-1]){
+    return res.send({success : false, reason : "needs to mint a new token"})
+  }
+  const TokenURI = await NFTInstance.methods.tokenURI(tokenIds[tokenIds.length-1]).call();
+  const tokenMetaData = await fetch(`https://gateway.pinata.cloud/ipfs/${TokenURI.slice(7)}`);
+  const tokenMetaDataBody = await tokenMetaData.json();
+  const level = Number(tokenMetaDataBody.attributes.level.split(" ")[0]);
+  const costs = await DAOInstance.methods.getCosts().call();
+  const timeStamp = await NFTInstance.methods.lastTimeStampNFTUsed(address).call();
+  const nonce = await VerifyInstance.methods.nonces(address).call();
+  const signature = await verifyDAOInfo(nonce, address, Verify.networks[chainId].address, timeStamp, costs.length-level+1, tokenIds[tokenIds.length-1]);
+  console.log(`r is ${signature.r}, s is ${signature.s}, v is ${signature.v}, tokenId : ${tokenIds[tokenIds.length-1]}, and timestamp is ${timeStamp}`)
+
+  return res.send({success : true, level : costs.length-level+1, timeStamp : timeStamp, tokenId : tokenIds[tokenIds.length-1], r : signature.r, s : signature.s, v : signature.v});
+  
+})
+
 //graphQL query to fetch devices
 async function dataFetch(Address, owner) {
   const client = new ApolloClient({
@@ -406,6 +455,17 @@ const verifyNFTInfo = async function(nonce, account, contract, timestamp, URI, t
   let wallet = new ethers.Wallet(signingKey);
 
   const newHashMsg = ethers.utils.solidityKeccak256(["uint256", "address", "address", "uint256", "string", "uint256"], [nonce, account, contract, timestamp, URI, tokenId]);
+
+  const sig = ethersSign(wallet, newHashMsg);
+
+  return sig;
+
+}
+
+const verifyDAOInfo = async function(nonce, account, contract, timestamp, level, tokenId){
+  let wallet = new ethers.Wallet(signingKey);
+
+  const newHashMsg = ethers.utils.solidityKeccak256(["uint256", "address", "address", "uint256", "uint256", "uint256"], [nonce, account, contract, timestamp, level, tokenId]);
 
   const sig = ethersSign(wallet, newHashMsg);
 

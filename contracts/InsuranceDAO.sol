@@ -36,7 +36,7 @@ contract InsuranceDAO is Ownable{
 
     }
 
-    function addToDao (uint256 level, uint256 tokenId, uint256 timeStamp, bytes32 r, bytes32 s, uint8 v) public payable {
+    function addToDao(uint256 level, uint256 tokenId, uint256 timeStamp, bytes32 r, bytes32 s, uint8 v) public payable {
         require(costSchedule.length >0 && penaltyLevels.length > 0 , "set DAO cost and price data");
         require(verifyContract.driverDataVerify(_msgSender(), level, tokenId, timeStamp, r, s, v), "signer must be server");
         uint[] memory tokenIds = NFTInstance.getTokensByAddr(_msgSender());
