@@ -39,6 +39,10 @@ This app uses verified Pebble Tracker data to mint NFTs for users that will stor
  to deploy to Iotex test net
  
  ### short demo video
+ <a href="https://www.youtube.com/embed/Z1oObi3Znwk
+" target="_blank"><img src="https://i9.ytimg.com/vi/Z1oObi3Znwk/mq2.jpg?sqp=CJCxmY0G&rs=AOn4CLBWtGoTC03ddOaqZRl4u4UY9f0xdg" 
+alt="" width="240" height="180" border="10" /></a>
+ 
  
  ### longer demo video
  <a href="https://www.youtube.com/embed/MrPWxuDBnIo
