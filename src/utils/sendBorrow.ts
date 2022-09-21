@@ -3,14 +3,14 @@ import { BigNumber, utils } from 'ethers'
 import { FormikState } from 'formik'
 import toast from 'react-hot-toast'
 
-import { BorrowInputInterface } from 'pages/borrow'
+//import { BorrowInputInterface } from 'pages/borrow'
 
 import { Web3Provider } from '@ethersproject/providers'
 import { Contract } from '@ethersproject/contracts'
-import { minERC20Abi, minLoanPoolAbi } from 'abis/otherAbis'
+import { minERC20Abi } from '../abis/otherAbis'
 
 import { CHAINS } from './chains'
-import { toastRpcError, toastLoading } from './toast'
+//import { toastRpcError, toastLoading } from './toast'
 
 export type SendBorrowOptions = {
   amountPledge: BigNumber
@@ -25,7 +25,7 @@ export type SendBorrowOptions = {
   chainId?: number
   provider?: Web3Provider
   account?: string
-  resetForm: (nextState?: Partial<FormikState<BorrowInputInterface>> | undefined) => void
+  //resetForm: (nextState?: Partial<FormikState<BorrowInputInterface>> | undefined) => void
 }
 
 export const sendBorrow = async ({
@@ -47,7 +47,7 @@ export const sendBorrow = async ({
     let currentLoadingToastId = undefined
 
     const wethInstance = new Contract(chainAsset.WETH, minERC20Abi.abi, provider?.getSigner(account))
-    const loanPoolInstance = new Contract(chainAsset.loanPool, minLoanPoolAbi.abi, provider?.getSigner(account))
+    //const loanPoolInstance = new Contract(chainAsset.loanPool, minLoanPoolAbi.abi, provider?.getSigner(account))
 
     let tempBalance: BigNumber, tempApproval: BigNumber
     if (typeof wethBalance !== undefined && wethBalance !== undefined) {
@@ -66,12 +66,12 @@ export const sendBorrow = async ({
         try {
           const approveWETHReceipt = await wethInstance.approve(chainAsset.loanPool, BigNumber.from(2).pow(256).sub(1))
 
-          currentLoadingToastId = toastLoading(approveWETHReceipt.hash)
+          //currentLoadingToastId = toastLoading(approveWETHReceipt.hash)
 
           await approveWETHReceipt.wait()
 
-          toast.dismiss(currentLoadingToastId)
-          toast.success('You approved WETH')
+          // toast.dismiss(currentLoadingToastId)
+          // toast.success('You approved WETH')
 
           tempApproval = BigNumber.from(2).pow(256).sub(1)
 
@@ -82,7 +82,7 @@ export const sendBorrow = async ({
         } catch (error: any) {
           console.log(error)
 
-          toastRpcError(error, currentLoadingToastId)
+          //toastRpcError(error, currentLoadingToastId)
 
           reject(error)
         }
@@ -95,35 +95,35 @@ export const sendBorrow = async ({
     const shiftedMaxRepayAmount = Math.round(maxRepayAmountUSDC * 10 ** 6)
 
     try {
-      const borrowReceipt = await loanPoolInstance.borrow(
-        amountPledge,
-        BigNumber.from(shiftedMinBorrowAmount),
-        BigNumber.from(shiftedMaxRepayAmount),
-        txnDeadline
-      )
+      // const borrowReceipt = await loanPoolInstance.borrow(
+      //   amountPledge,
+      //   BigNumber.from(shiftedMinBorrowAmount),
+      //   BigNumber.from(shiftedMaxRepayAmount),
+      //   txnDeadline
+      // )
 
-      currentLoadingToastId = toastLoading(borrowReceipt.hash)
+      // currentLoadingToastId = toastLoading(borrowReceipt.hash)
 
-      const confirmationBorrowReceipt = await borrowReceipt.wait()
+      // const confirmationBorrowReceipt = await borrowReceipt.wait()
 
-      const transactionHash = String(confirmationBorrowReceipt.transactionHash)
-      const loanId = parseInt(confirmationBorrowReceipt.events[14].topics[3])
-      const amountLoaned = parseInt(confirmationBorrowReceipt.events[13].data)
+      // const transactionHash = String(confirmationBorrowReceipt.transactionHash)
+      // const loanId = parseInt(confirmationBorrowReceipt.events[14].topics[3])
+      // const amountLoaned = parseInt(confirmationBorrowReceipt.events[13].data)
 
-      //put in call to put lambda function for table
-      await fetch(`${process.env.REACT_APP_API_URL}/loans`, {
-        method: 'POST',
-        body: JSON.stringify({
-          loanId: String(loanId),
-          loanAmount: utils.formatUnits(BigNumber.from(amountLoaned), 6),
-          txnHashBorrow: transactionHash,
-          account: account?.toString(),
-          chainId: chainId?.toString()
-        })
-      })
+      // //put in call to put lambda function for table
+      // await fetch(`${process.env.REACT_APP_API_URL}/loans`, {
+      //   method: 'POST',
+      //   body: JSON.stringify({
+      //     loanId: String(loanId),
+      //     loanAmount: utils.formatUnits(BigNumber.from(amountLoaned), 6),
+      //     txnHashBorrow: transactionHash,
+      //     account: account?.toString(),
+      //     chainId: chainId?.toString()
+      //   })
+      // })
 
-      toast.dismiss(currentLoadingToastId)
-      toast.success(`You borrowed ${utils.formatUnits(BigNumber.from(amountLoaned), 6)} USDC`)
+      // toast.dismiss(currentLoadingToastId)
+      // toast.success(`You borrowed ${utils.formatUnits(BigNumber.from(amountLoaned), 6)} USDC`)
 
       queryClient.setQueryData(['account', account, chainId], (old: any) => ({
         ...old,
@@ -133,11 +133,11 @@ export const sendBorrow = async ({
           : old.wethApproval
       }))
 
-      resolve(amountLoaned)
+      resolve(0)
     } catch (error: any) {
       console.log(error)
 
-      toastRpcError(error, currentLoadingToastId)
+      //toastRpcError(error, currentLoadingToastId)
 
       reject(error)
     }

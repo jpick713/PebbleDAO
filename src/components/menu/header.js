@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext} from "react";
 import Breakpoint, { BreakpointProvider, setDefaultBreakpoints } from "react-socks";
-import { Link } from '@reach/router';
+import { Link } from 'react-router-dom';
 import useOnclickOutside from "react-cool-onclickoutside";
 
 import { useWeb3React } from "@web3-react/core";

@@ -12,7 +12,6 @@ const GlobalStyles = createGlobalStyle`
 `;
 
 const Collection= function(props) {
-const [openMenu, setOpenMenu] = React.useState(true);
 const [nftList, setNftList] = useState([]);
 const [metaDataList, setMetaDataList] = useState([]);
 

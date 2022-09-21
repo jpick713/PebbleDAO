@@ -4,16 +4,9 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
 import Header from './menu/header';
 import Landing from './pages/Landing';
 import Mint from './pages/mint';
-//import { createGlobalStyle } from 'styled-components';
 import Collection from './pages/collection';
 import Holdings from './pages/holdings';
 import { AccountTypeContext } from './../appContexts';
-
-// const GlobalStyles = createGlobalStyle`
-//   :root {
-//     scroll-behavior: unset;
-//   }
-// `;
 
 const queryClient = new QueryClient()
 
