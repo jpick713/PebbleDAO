@@ -1,5 +1,4 @@
 import React, {useState, useContext, useEffect} from 'react';
-import ColumnNewThreeColRedux from '../components/ColumnNewThreeColRedux';
 import Footer from '../components/Footer';
 //import { createGlobalStyle } from 'styled-components';
 import { useWeb3React } from "@web3-react/core";
@@ -78,7 +77,7 @@ return(
   <section className='container no-top'>
       {account && (  
         <div key = {account} id='zero1' className='onStep fadeIn'>
-         <ColumnNewThreeColRedux key = {account} nftList={nftList} metaDataList = {metaDataList} memberList = {memberList} />
+         
         </div>
       )}  
   </section>

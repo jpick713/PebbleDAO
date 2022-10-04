@@ -7,7 +7,6 @@ import Footer from '../components/Footer';
 import FeatureBox from '../components/FeatureBox';
 
 import { useWeb3React } from "@web3-react/core";
-import { InjectedConnector } from '@web3-react/injected-connector'
 import { AccountContext } from '../App';
 
 const GlobalStyles = createGlobalStyle`
@@ -111,9 +110,9 @@ const GlobalStyles = createGlobalStyle`
 
 const Landing = () => {
 
-  const injected = new InjectedConnector({
-    supportedChainIds: [1, 3, 4, 5, 42, 4690],
-  })
+  // const injected = new InjectedConnector({
+  //   supportedChainIds: [1, 3, 4, 5, 42, 4690],
+  // })
 
 const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
 
@@ -126,19 +125,19 @@ useEffect(() => {
 }, [account, active, chainId])
 
 async function connect() {
-    try {
-      await activate(injected)
-    } catch (ex) {
-      console.log(ex)
-    }
+    // try {
+    //   await activate(injected)
+    // } catch (ex) {
+    //   console.log(ex)
+    // }
   }
 
   async function disconnect() {
-    try {
-      deactivate()
-    } catch (ex) {
-      console.log(ex)
-    }
+    // try {
+    //   deactivate()
+    // } catch (ex) {
+    //   console.log(ex)
+    // }
   }
   
   return(

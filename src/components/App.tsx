@@ -20,9 +20,10 @@ const App: React.FC = () => {
   return (
     <div className="wrapper">
       <AccountContext.Provider value={{globalAccount, setGlobalAccount, globalActive, setGlobalActive, globalChainId, setGlobalChainId}}>
-        <Header/>
+        
         <QueryClientProvider client={queryClient}>
         <Router>
+          <Header/>
           <Routes>
             <Route path="/" element={<Landing />}>
               <Route path="/profile" element={<Collection />} />

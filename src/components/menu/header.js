@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import useOnclickOutside from "react-cool-onclickoutside";
 
 import { useWeb3React } from "@web3-react/core";
-import { InjectedConnector } from '@web3-react/injected-connector'
 import { AccountContext } from '../App';
 
 setDefaultBreakpoints([
@@ -35,9 +34,9 @@ const Header= function() {
     const [openMenu2, setOpenMenu2] = React.useState(false);
     const [openMenu3, setOpenMenu3] = React.useState(false);
 
-    const injected = new InjectedConnector({
-      supportedChainIds: [1, 3, 4, 5, 42, 4690],
-    })
+    // const injected = new InjectedConnector({
+    //   supportedChainIds: [1, 3, 4, 5, 42, 4690],
+    // })
   
     const { active, account, chainId, library, connector, activate, deactivate } = useWeb3React();
     
@@ -49,19 +48,19 @@ const Header= function() {
     }, [account, active])
 
     async function connect() {
-      try {
-        await activate(injected)
-      } catch (ex) {
-        console.log(ex)
-      }
+      // try {
+      //   await activate(injected)
+      // } catch (ex) {
+      //   console.log(ex)
+      // }
     }
 
     async function disconnect() {
-      try {
-        deactivate()
-      } catch (ex) {
-        console.log(ex)
-      }
+      // try {
+      //   deactivate()
+      // } catch (ex) {
+      //   console.log(ex)
+      // }
     }
 
 
