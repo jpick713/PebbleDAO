@@ -1,4 +1,3 @@
-import React from 'react';
 import Reveal from 'react-awesome-reveal';
 import { keyframes } from "@emotion/react";
 
@@ -31,9 +30,9 @@ const slidermainparticle= () => (
     <div className="row align-items-center">
           <div className="col-md-6">
               <div className="spacer-single"></div>
-              <h6> <span className="text-uppercase color">The World's First</span></h6>
+              <h6> <span className="text-uppercase color">The World's</span></h6>
               <Reveal className='onStep' keyframes={fadeInUp} delay={300} duration={900} triggerOnce>
-              <h1 className="col-white">InsurTech DAO.</h1>
+              <h1 className="col-white">NFT.</h1>
               </Reveal>
               <Reveal className='onStep' keyframes={fadeInUp} delay={600} duration={900} triggerOnce>
               <p className="lead col-white">

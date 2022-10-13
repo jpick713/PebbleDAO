@@ -54,7 +54,7 @@
     "react-router-dom": "^6.3.0",
     "react-scripts": "^5.0.1",
     "react-socks": "^2.2.0",
-    "react-tsparticles": "^2.31.0",
+    "react-tsparticles": "^2.3.3",
     "recharts": "^2.1.13",
     "redux-thunk": "^2.3.0",
     "reselect": "^4.0.0",
